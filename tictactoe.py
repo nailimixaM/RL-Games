@@ -59,6 +59,25 @@ class Board:
 
     def print_avail_positions(self):
         print("Available positions: " + str([pos for pos in self.__avail_positions]))
+    
+    def check_victory(self, player):
+        for i in range(3):
+            if self.__positions[i] != "_" and self.__positions[i] ==  self.__positions[i+1] and self.__positions[i] ==  self.__positions[i+2]:
+                print("Player %i wins!" % player)
+                return True 
+            if self.__positions[i] != "_" and self.__positions[i] ==  self.__positions[i+3] and self.__positions[i] ==  self.__positions[i+6]:
+                print("Player %i wins!" % player)
+                return True 
+
+        if self.__positions[0] != "_" and self.__positions[0] ==  self.__positions[4] and self.__positions[0] ==  self.__positions[8]:
+            print("Player %i wins!" % player)
+            return True 
+        
+        if self.__positions[2] != "_" and self.__positions[2] ==  self.__positions[4] and self.__positions[2] ==  self.__positions[6]:
+            print("Player %i wins!" % player)
+            return True 
+
+        return False
 
 def main():
     print("Hello, welcome to tic-tac-toe!")
@@ -66,7 +85,8 @@ def main():
     
     turn_no = 1
     player = 1 
-    while turn_no < 10:
+    victory = False
+    while turn_no < 10 and not victory: 
         print("#"*15)
         validMove = False
         while not validMove:
@@ -79,7 +99,7 @@ def main():
                 board.print_board()
             else:
                 print("***Error: incorrect entry. Entry must be an integer 1-9.")
-
+        victory = board.check_victory(player)
         if turn_no%2 == 1:
             player = 2
         else:
