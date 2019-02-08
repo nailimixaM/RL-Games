@@ -154,8 +154,8 @@ def main():
             else:
                 print("***Error: incorrect entry. Entry must be an integer 1-9.")
             '''
-            print("Ready?")
-            m = input()
+            print("Ready? Press any key for bot to make a move")
+            _ = input()
 
             move_list = []
             state_list = []
@@ -203,7 +203,7 @@ def main():
         state = board.visited_states[n_states_visited - i - 2]
         next_state = board.visited_states[n_states_visited - i - 1]
         board.V[state] = board.V[state] + 0.1*(board.V[next_state] - board.V[state])
-    print("The estimated values of the states are:")
+    print("The estimated values of the visited and considered states are:")
     print(board.V)
 
 if __name__ == "__main__":
