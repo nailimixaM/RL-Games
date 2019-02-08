@@ -188,7 +188,7 @@ def main():
         print(board.V)
         next_states = board.get_next_avail_states(player)
 
-    #Update V
+    #Update V: Use temporal-difference learning to train the bot
     for state in board.visited_states:
         if state not in board.V:
             board.V[state] = 0
