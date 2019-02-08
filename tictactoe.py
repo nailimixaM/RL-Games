@@ -69,7 +69,7 @@ class Board:
         self.__avail_positions.remove(move+1)
         self.__update_positions()
         self.update_visited_states()
-        print(self.visited_states)
+        #print(self.visited_states)
         return True
 
     def print_avail_positions(self):
@@ -114,7 +114,7 @@ class Board:
 
         cur_state = self.visited_states[-1]
         blank_pos = [pos for pos, char in enumerate(cur_state) if char == "_"]
-        print(blank_pos)
+        #print(blank_pos)
         next_avail_states = {} #Dict keyed by moves, values are states
         for pos in blank_pos:
             if pos == 0:
@@ -185,19 +185,25 @@ def main():
         else:
             player = 1
         turn_no = turn_no + 1
-        print(board.V)
+        #print(board.V)
         next_states = board.get_next_avail_states(player)
+
+    #If end is a draw, update V[final_state] to zero
+    if not victory:
+        final_state = board.visited_states[-1]
+        board.V[final_state] = 0
 
     #Update V: Use temporal-difference learning to train the bot
     for state in board.visited_states:
         if state not in board.V:
             board.V[state] = 0
     n_states_visited = len(board.visited_states)
-    print(n_states_visited)
+    #print(n_states_visited)
     for i in range(n_states_visited-1):
         state = board.visited_states[n_states_visited - i - 2]
         next_state = board.visited_states[n_states_visited - i - 1]
         board.V[state] = board.V[state] + 0.1*(board.V[next_state] - board.V[state])
+    print("The estimated values of the states are:")
     print(board.V)
 
 if __name__ == "__main__":
