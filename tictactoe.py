@@ -82,27 +82,27 @@ class Board:
             if positions[3*i] != "_" and positions[3*i] ==  positions[3*i+1]\
                     and positions[3*i] ==  positions[3*i+2]:
                 
-                print("Player %i wins!" % player)
+                #print("Player %i wins!" % player)
                 self.V[visited_states[-1]] = 100
                 return True 
             if positions[i] != "_" and positions[i] ==  positions[i+3]\
                     and positions[i] ==  positions[i+6]:
             
-                print("Player %i wins!" % player)
+                #print("Player %i wins!" % player)
                 self.V[visited_states[-1]] = 100
                 return True 
 
         if positions[0] != "_" and positions[0] ==  positions[4]\
                 and positions[0] ==  positions[8]:
             
-            print("Player %i wins!" % player)
+            #print("Player %i wins!" % player)
             self.V[visited_states[-1]] = 100
             return True 
         
         if positions[2] != "_" and positions[2] ==  positions[4]\
                 and positions[2] ==  positions[6]:
             
-            print("Player %i wins!" % player)
+            #print("Player %i wins!" % player)
             self.V[visited_states[-1]] = 100
             return True 
 
@@ -133,61 +133,163 @@ class Board:
 
 def main():
     print("Hello, welcome to tic-tac-toe!")
-    Vx = {}
-    Vo = {}
+    learning_rate = 0.05
+    num_trials_list = [10**(i+1)  for i in range(4)]
+    Xwins_list = []
+    Owins_list = []
 
-    Xwins = 0
-    Owins = 0
-    num_trials = 10000
-    for n in range(num_trials):
-        print("Trial : " + str(n+1))
-        global xlocs 
-        global olocs
-        global visited_states
-        global positions
-        global avail_positions
+    for num_trials in num_trials_list:
+        Vx = {}
+        Vo = {}
+        Xwins = 0
+        Owins = 0
+        for n in range(num_trials):
+            if (n+1)%10 == 0:
+                print("Trial : " + str(n+1) + "/" + str(num_trials))
+            global xlocs 
+            global olocs
+            global visited_states
+            global positions
+            global avail_positions
+            xlocs = [] #List of indices of "X" symbols
+            olocs = [] #List of indices of "O" symbols
+            visited_states = [] #List of visited states
+            positions = {} #Dict of placing of symbols, keyed by positions 1-9
+            avail_positions = [i + 1 for i in range(9)] #List of possible moves 1-9
+            if n == 0:
+                boardX = Board(Vx)
+                boardO = Board(Vo)
+                
+            else:
+                boardX = Board(boardX.V)
+                boardO = Board(boardO.V)
+            turn_no = 1
+            player = 1 
+            next_states = boardX.get_next_avail_states(player)
+            victory = False
+
+            while turn_no < 10 and not victory: 
+                #print("#"*15)
+                validMove = False
+
+                while not validMove:
+                    if player == 1:
+                        board = boardX
+                    else:
+                        board = boardO
+
+                    move_list = []
+                    state_list = []
+                    max_state_V = -1000
+                    for poss_move, poss_state in next_states.items():
+                        if poss_state not in board.V.keys():
+                            board.V[poss_state] = 0
+                        if board.V[poss_state] > max_state_V:
+                            max_state_V = board.V[poss_state]
+                    
+                    for state, Vstate in board.V.items():
+                        if Vstate == max_state_V:
+                            state_list.append(state)
+                    
+                    for move, state in next_states.items():
+                        if state in state_list:
+                            move_list.append(move)
+
+                    move = random.choice(move_list)
+                    #if player == 2:
+                    #    move = random.choice(avail_positions)
+                    #print(move)
+                    validMove = board.add_move(player,move-1)
+                    #board.print_board()
+
+                    victory = board.check_victory(player)
+                    if (victory):
+                        if player == 1:
+                            boardX.V[visited_states[-1]] = 100
+                            boardO.V[visited_states[-1]] = -100
+                            Xwins = Xwins + 1
+                        else:
+                            boardX.V[visited_states[-1]] = -100
+                            boardO.V[visited_states[-1]] = 100
+                            Owins = Owins + 1
+
+                    if player == 1:
+                        next_states = boardX.get_next_avail_states(2)
+                    else:
+                        next_states = boardO.get_next_avail_states(1)
+                    
+                    if turn_no%2 == 1:
+                        player = 2
+                    else:
+                        player = 1
+                    turn_no = turn_no + 1
+
+
+            ######END OF GAME########
+
+            #If end is a draw, update V[final_state] to zero
+            if not victory:
+                final_state = visited_states[-1]
+                boardX.V[final_state] = 0
+                boardO.V[final_state] = 0
+
+            #Update V: Use temporal-difference learning to train the bot
+            for state in visited_states:
+                if state not in boardX.V:
+                    boardX.V[state] = 0
+                if state not in boardO.V:
+                    boardO.V[state] = 0
+            
+            n_states_visited = len(visited_states)
+            for i in range(n_states_visited-1):
+                state = visited_states[n_states_visited - i - 2]
+                next_state = visited_states[n_states_visited - i - 1]
+                boardX.V[state] = boardX.V[state] + learning_rate*(boardX.V[next_state] - boardX.V[state])
+                boardO.V[state] = boardO.V[state] + learning_rate*(boardO.V[next_state] - boardO.V[state])
+        print("Xwins: %i" % Xwins)
+        Xwins_list.append(Xwins)
+        print("Owins: %i" % Owins)
+        Owins_list.append(Owins)
+
+    ####PLAY THE BOT#####
+    while True:
         xlocs = [] #List of indices of "X" symbols
         olocs = [] #List of indices of "O" symbols
         visited_states = [] #List of visited states
         positions = {} #Dict of placing of symbols, keyed by positions 1-9
         avail_positions = [i + 1 for i in range(9)] #List of possible moves 1-9
-        if n == 0:
-            boardX = Board(Vx)
-            boardO = Board(Vo)
-            
+        
+        print("Play as player '1' or '2'?:")
+        chosen_player = int(input())
+        
+        boards = {}
+        Vp = {}
+        boardPlayer = Board(Vp)
+        if chosen_player == 1: #Load appropriate bot (X or O)
+            boardBot = Board(boardO.V)
+            boards[1] = boardPlayer
+            boards[2] = boardBot
         else:
-            boardX = Board(boardX.V)
-            boardO = Board(boardO.V)
+            boardBot = Board(boardX.V)
+            boards[1] = boardBot
+            boards[2] = boardPlayer
+
+        
         turn_no = 1
-        player = 1 
-        next_states = boardX.get_next_avail_states(player)
+        player = 1
+        next_states = boardBot.get_next_avail_states(player)
         victory = False
 
         while turn_no < 10 and not victory: 
-            #print("#"*15)
+            print("#"*15)
             validMove = False
 
             while not validMove:
-                if player == 1:
-                    board = boardX
-                else:
-                    board = boardO
+                board = boards[player]
 
-                #print("Player " + str(player) + "'s go. Please enter a valid move:")
-                #board.print_avail_positions()
+                print("Player " + str(player) + "'s go. Please enter a valid move:")
+                board.print_avail_positions()
                 
-                '''
-                move = input()
-                if move.isdigit():
-                    move = int(move)
-                    validMove = board.add_move(player,move-1)
-                    board.print_board()
-                else:
-                    print("***Error: incorrect entry. Entry must be an integer 1-9.")
-                '''
-                #print("Ready? Press any key for bot to make a move")
-                #_ = input()
-
                 move_list = []
                 state_list = []
                 max_state_V = -1000
@@ -206,27 +308,19 @@ def main():
                         move_list.append(move)
 
                 move = random.choice(move_list)
-                if player == 2:
-                    move = random.choice(avail_positions)
-                #print(move)
+                if player == chosen_player:
+                    move = int(input())
+                    
+                print(move)
                 validMove = board.add_move(player,move-1)
-                #board.print_board()
+                board.print_board()
 
                 victory = board.check_victory(player)
-                if (victory):
-                    if player == 1:
-                        boardX.V[visited_states[-1]] = 100
-                        boardO.V[visited_states[-1]] = -100
-                        Xwins = Xwins + 1
-                    else:
-                        boardX.V[visited_states[-1]] = -100
-                        boardO.V[visited_states[-1]] = 100
-                        Owins = Owins + 1
 
                 if player == 1:
-                    next_states = boardX.get_next_avail_states(2)
+                    next_states = board.get_next_avail_states(2)
                 else:
-                    next_states = boardO.get_next_avail_states(1)
+                    next_states = board.get_next_avail_states(1)
                 
                 if turn_no%2 == 1:
                     player = 2
@@ -234,37 +328,6 @@ def main():
                     player = 1
                 turn_no = turn_no + 1
 
-
-        ######END OF GAME########
-
-        #If end is a draw, update V[final_state] to zero
-        if not victory:
-            final_state = visited_states[-1]
-            boardX.V[final_state] = 0
-            boardO.V[final_state] = 0
-
-        #Update V: Use temporal-difference learning to train the bot
-        for state in visited_states:
-            if state not in boardX.V:
-                boardX.V[state] = 0
-            if state not in boardO.V:
-                boardO.V[state] = 0
-        
-        n_states_visited = len(visited_states)
-        #print(n_states_visited)
-        for i in range(n_states_visited-1):
-            state = visited_states[n_states_visited - i - 2]
-            next_state = visited_states[n_states_visited - i - 1]
-            boardX.V[state] = boardX.V[state] + 0.1*(boardX.V[next_state] - boardX.V[state])
-            boardO.V[state] = boardO.V[state] + 0.1*(boardO.V[next_state] - boardO.V[state])
-        #print("The estimated values of the visited and considered X states are:")
-        #print(boardX.V)
-        #print("The estimated values of the visited and considered O states are:")
-        #print(boardO.V)
-        board.print_board()
-        print("-"*15)
-    print("Xwins: %i" % Xwins)
-    print("Owins: %i" % Owins)
 
 
 if __name__ == "__main__":
