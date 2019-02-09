@@ -283,10 +283,9 @@ def main():
         while turn_no < 10 and not victory: 
             print("#"*15)
             validMove = False
+            board = boards[player]
 
             while not validMove:
-                board = boards[player]
-
                 print("Player " + str(player) + "'s go. Please enter a valid move:")
                 board.print_avail_positions()
                 
