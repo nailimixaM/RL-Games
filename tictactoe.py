@@ -126,15 +126,19 @@ def main():
     print("Hello, welcome to tic-tac-toe!")
     
     ##Train the bots over many trials##
-    MAX_NUM_TRIALS = 10000
-    Vx = {}
-    Vo = {}
+    print("Please enter the number of trials (games) to train the bots over (10k trials takes approx 20s): ")
+    MAX_NUM_TRIALS = input()
+    while MAX_NUM_TRIALS.isdigit() == False:
+        print("Error, please try again:")
+        MAX_NUM_TRIALS = input()
+    MAX_NUM_TRIALS = int(MAX_NUM_TRIALS)
+
     for n_trial in range(1,MAX_NUM_TRIALS+1,1):
         print("Trial: " + str(n_trial) + " of " + str(MAX_NUM_TRIALS))
         board = Board()
         if n_trial == 1:
-            bot1 = Bot("X",Vx,0,True)
-            bot2 = Bot("O",Vo,0,True)
+            bot1 = Bot("X",{},0,True)
+            bot2 = Bot("O",{},0,True)
         else:
             bot1 = Bot("X",bot1.V,bot1.num_wins,True) #Load key bot variables from previous trial
             bot2 = Bot("O",bot2.V,bot2.num_wins,True) #Load key bot variables from previous trial
@@ -190,11 +194,23 @@ def main():
     print("Training complete!")
     print("X won " + str(bot1.num_wins) + " games and analysed " + str(len(bot1.V)) + " positions.")
     print("O won " + str(bot2.num_wins) + " games and analysed " + str(len(bot2.V)) + " positions.")
-    
+    save_results(bot1,bot2,MAX_NUM_TRIALS)
+
     ##Play bot##
-    Vx = {}
-    Vo = {}
-    while True:
+    print("Would you like to play against the bot? (y/n)")
+    valid_answer = False
+    while not valid_answer:
+        answer = input()
+        if answer == "y":
+            play_game = True
+            valid_answer = True
+        elif answer == "n":
+            play_game = False
+            valid_answer = True
+        else:
+            print("Error, please enter 'y' or 'n':")
+
+    while play_game:
         board = Board()
         print("Play as player '1' or '2'?")
         player = int(input())
@@ -211,7 +227,8 @@ def main():
         victory = False
         board.print_board()
         while turn <= MAX_NUM_TURNS and not victory:
-            if (turn-1)%2 + 1 == player:
+            cur_player = (turn-1)%2 + 1
+            if cur_player == player:
                 print("Please make a move. Available moves:")
                 print(board.available_moves)
                 move = int(input())
@@ -223,11 +240,11 @@ def main():
             
             else:
                 n_states = board.get_next_possible_states(bot.symbol)
-                for mov, state in n_states.items():
-                    if state in bot.V:
-                        print("State " + state + " has value: " + str(bot.V[state]))
-                    else:
-                        print("State not analysed yet.")
+                #for mov, state in n_states.items():
+                #    if state in bot.V:
+                #        print("State " + state + " has value: " + str(bot.V[state]))
+                #    else:
+                #        print("State not analysed yet.")
 
                 move = bot.get_move(board)
                 board.update(move,bot.symbol)
@@ -236,10 +253,56 @@ def main():
             board.print_board()
             victory = board.check_victory(bot.symbol)
             if (victory):
-                print("Game over!")
+                if cur_player == player:
+                    print("Game over: you win!")
+                else:
+                    print("Game over: you lose!")
             
             turn = turn + 1
+        
+        print("Would you like to play again? (y/n)")
+        valid_answer = False
+        while not valid_answer:
+            answer = input()
+            if answer == "y":
+                play_game = True
+                valid_answer = True
+            elif answer == "n":
+                play_game = False
+                valid_answer = True
+                print("Goodbye!")
+            else:
+                print("Error, please enter 'y' or 'n':")
 
+def save_results(bot1,bot2,MAX_NUM_TRIALS):
+    filename = "results_" + str(MAX_NUM_TRIALS) + "_trials.txt"
+    f = open(filename,"w")
+    state_msg = "X analysed " + str(len(bot1.V)) + " states, O analysed " + str(len(bot2.V)) + ".\n"
+    
+    for state, value in bot1.V.items():
+        if state not in bot2.V:
+            bot2.V[state] = "Not analysed"
+    
+    for state, value in bot2.V.items():
+        if state not in bot1.V:
+            bot1.V[state] = "Not analysed"
+    
+    f.write("Results of training with " + str(MAX_NUM_TRIALS) + " trials.\n")
+    res_msg = "X won " + str(bot1.num_wins) + " games, O won " + str(bot2.num_wins) + ".\n"
+    f.write(res_msg)
+    f.write(state_msg)
+    f.write("#"*len(res_msg) + "\n")
+    f.write("State values estimated by X and O:\n")
+
+    for state, value in bot1.V.items():
+        f.write("-"*len(res_msg) + "\n")
+        f.write("Estimated state value for X: " + str(value) + "\n")
+        f.write("Estimated state value for O: " + str(bot2.V[state]) + "\n")
+        f.write(state[0:3] + "\n")
+        f.write(state[3:6] + "\n")
+        f.write(state[6:9] + "\n")
+
+        
 
 if __name__ == "__main__":
     main()
