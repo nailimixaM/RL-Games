@@ -10,8 +10,8 @@ class Board:
     x_positions = []    #List of indices of "X" symbols
     o_positions = []    #List of indices of "O" symbols
     positions = {}      #Dictionary of symbols (values) at positions (keys) 1-9
-    available_moves = []
-    visited_states = []
+    available_moves = []#List of available moves
+    visited_states = [] #List of visited states
     
     def __init__(self):
         self.x_positions = []
@@ -21,7 +21,7 @@ class Board:
         for i in range(9):
             self.positions[i+1] = "_"
         self.visited_states = []
-        self.visited_states.append("_________")
+        self.visited_states.append("_"*9)
 
     def print_board(self):
         row1 = ""
@@ -81,20 +81,20 @@ class Board:
         return False
  
 
-
-
 class Bot:
     symbol = "" # "X" or "O"
     win = -1    # win = 1 if bot wins
     V = {}      # Estimated value of states (keys)
     num_wins = 0# Track number of bot wins
+    training = True
 
-    def __init__(self,symbol,V,num_wins):
+    def __init__(self,symbol,V,num_wins,training):
         self.symbol = symbol
         self.win = -1
         self.num_wins = num_wins
         self.V = V
-
+        self.training = training
+    
     def get_move(self, board):
         next_possible_states = board.get_next_possible_states(self.symbol)
         candidate_moves = []
@@ -108,12 +108,18 @@ class Bot:
             candidate_moves.append(poss_move)
             candidate_V.append(self.V[poss_state])
 
-        tau = 1
-        candidate_probabilities = list(np.exp(candidate_V)/sum(np.exp(candidate_V)))
-        move = int(np.random.choice(candidate_moves,1,candidate_probabilities))
-        #print("Move: " + str(move))
-        return move
+        if self.training:
+            tau = 5.0
+            candidate_V[:] = [x/tau for x in candidate_V]
+            candidate_probabilities = list(np.exp(candidate_V)/sum(np.exp(candidate_V)))
+            move = int(np.random.choice(candidate_moves,1,candidate_probabilities))
+        
+        else:
+            max_V = max(candidate_V)
+            possible_moves = [candidate_moves[i] for i,j in enumerate(candidate_V) if j == max_V]
+            move = np.random.choice(possible_moves)
 
+        return move
 
 
 def main():
@@ -124,14 +130,14 @@ def main():
     Vx = {}
     Vo = {}
     for n_trial in range(1,MAX_NUM_TRIALS+1,1):
-        print("Trial: " + str(n_trial))
+        print("Trial: " + str(n_trial) + " of " + str(MAX_NUM_TRIALS))
         board = Board()
         if n_trial == 1:
-            bot1 = Bot("X",Vx,0)
-            bot2 = Bot("O",Vo,0)
+            bot1 = Bot("X",Vx,0,True)
+            bot2 = Bot("O",Vo,0,True)
         else:
-            bot1 = Bot("X",bot1.V,bot1.num_wins) #Load key bot variables from previous trial
-            bot2 = Bot("O",bot2.V,bot2.num_wins) #Load key bot variables from previous trial
+            bot1 = Bot("X",bot1.V,bot1.num_wins,True) #Load key bot variables from previous trial
+            bot2 = Bot("O",bot2.V,bot2.num_wins,True) #Load key bot variables from previous trial
 
         bots = {}    
         bots[1] = bot1 
@@ -180,11 +186,60 @@ def main():
             bot1.V[state] = bot1.V[state] + LEARN_RATE*(bot1.V[next_state] - bot1.V[state])
             bot2.V[state] = bot2.V[state] + LEARN_RATE*(bot2.V[next_state] - bot2.V[state])
 
-    ##Analyse results#
-    print(len(bot1.V))
-    print(len(bot2.V))
-    print(bot1.num_wins)
-    print(bot2.num_wins)
+    ##Analyse results##
+    print("Training complete!")
+    print("X won " + str(bot1.num_wins) + " games and analysed " + str(len(bot1.V)) + " positions.")
+    print("O won " + str(bot2.num_wins) + " games and analysed " + str(len(bot2.V)) + " positions.")
+    
+    ##Play bot##
+    Vx = {}
+    Vo = {}
+    while True:
+        board = Board()
+        print("Play as player '1' or '2'?")
+        player = int(input())
+        if player == 1:
+            bot = Bot("O",bot2.V,bot2.num_wins,False) #Load key bot variables from previous trials
+            player_symbol = "X"
+        else:
+            bot = Bot("X",bot1.V,bot1.num_wins,False) #Load key bot variables from previous trials
+            player_symbol = "O"
+
+        ##Run the game##
+        MAX_NUM_TURNS = 9
+        turn = 1
+        victory = False
+        board.print_board()
+        while turn <= MAX_NUM_TURNS and not victory:
+            if (turn-1)%2 + 1 == player:
+                print("Please make a move. Available moves:")
+                print(board.available_moves)
+                move = int(input())
+                while move not in board.available_moves:
+                    print("Error: move unavailable. Available moves:")
+                    print(board.available_moves)
+                    move = int(input())
+                board.update(move,player_symbol)
+            
+            else:
+                n_states = board.get_next_possible_states(bot.symbol)
+                for mov, state in n_states.items():
+                    if state in bot.V:
+                        print("State " + state + " has value: " + str(bot.V[state]))
+                    else:
+                        print("State not analysed yet.")
+
+                move = bot.get_move(board)
+                board.update(move,bot.symbol)
+            
+            print("#"*15)
+            board.print_board()
+            victory = board.check_victory(bot.symbol)
+            if (victory):
+                print("Game over!")
+            
+            turn = turn + 1
+
 
 if __name__ == "__main__":
     main()
