@@ -86,13 +86,15 @@ class Bot:
     win = -1    # win = 1 if bot wins
     V = {}      # Estimated value of states (keys)
     num_wins = 0# Track number of bot wins
+    tau = 0     #"Heat" controls exploration v exploitation
     training = True
 
-    def __init__(self,symbol,V,num_wins,training):
+    def __init__(self,symbol,V,num_wins,tau,training):
         self.symbol = symbol
         self.win = -1
         self.num_wins = num_wins
         self.V = V
+        self.tau = tau
         self.training = training
     
     def get_move(self, board):
@@ -109,8 +111,7 @@ class Bot:
             candidate_V.append(self.V[poss_state])
 
         if self.training:
-            tau = 5.0
-            candidate_V[:] = [x/tau for x in candidate_V]
+            candidate_V[:] = [x/self.tau for x in candidate_V]
             candidate_probabilities = list(np.exp(candidate_V)/sum(np.exp(candidate_V)))
             move = int(np.random.choice(candidate_moves,1,candidate_probabilities))
         
@@ -132,16 +133,21 @@ def main():
         print("Error, please try again:")
         MAX_NUM_TRIALS = input()
     MAX_NUM_TRIALS = int(MAX_NUM_TRIALS)
+    
+    tau = 20
 
     for n_trial in range(1,MAX_NUM_TRIALS+1,1):
         print("Trial: " + str(n_trial) + " of " + str(MAX_NUM_TRIALS))
+        if n_trial%5000 == 0:
+            tau = tau/2
+
         board = Board()
         if n_trial == 1:
-            bot1 = Bot("X",{},0,True)
-            bot2 = Bot("O",{},0,True)
+            bot1 = Bot("X",{},0,tau,True)
+            bot2 = Bot("O",{},0,tau,True)
         else:
-            bot1 = Bot("X",bot1.V,bot1.num_wins,True) #Load key bot variables from previous trial
-            bot2 = Bot("O",bot2.V,bot2.num_wins,True) #Load key bot variables from previous trial
+            bot1 = Bot("X",bot1.V,bot1.num_wins,tau,True) #Load key bot variables from previous trial
+            bot2 = Bot("O",bot2.V,bot2.num_wins,tau,True) #Load key bot variables from previous trial
 
         bots = {}    
         bots[1] = bot1 
@@ -189,12 +195,80 @@ def main():
             next_state = board.visited_states[n_states_visited -i -1]
             bot1.V[state] = bot1.V[state] + LEARN_RATE*(bot1.V[next_state] - bot1.V[state])
             bot2.V[state] = bot2.V[state] + LEARN_RATE*(bot2.V[next_state] - bot2.V[state])
-
-    ##Analyse results##
+    
+    ##Analyse training results##
     print("Training complete!")
     print("X won " + str(bot1.num_wins) + " games and analysed " + str(len(bot1.V)) + " positions.")
     print("O won " + str(bot2.num_wins) + " games and analysed " + str(len(bot2.V)) + " positions.")
-    save_results(bot1,bot2,MAX_NUM_TRIALS)
+    save_results(bot1,bot2,MAX_NUM_TRIALS,"trials")
+    
+    ##Bots play each other aggressively##
+
+    MAX_NUM_TESTS = 20000
+    for n_test in range(1,MAX_NUM_TESTS+1,1):
+        print("Test: " + str(n_test) + " of " + str(MAX_NUM_TESTS))
+        if n_trial == 1:
+            bot1 = Bot("X",bot1.V,0,0,False) #Load key bot variables from previous trial
+            bot2 = Bot("O",bot2.V,0,0,False) #Load key bot variables from previous trial
+        else:
+            bot1 = Bot("X",bot1.V,bot1.num_wins,0,False) #Load key bot variables from previous trial
+            bot2 = Bot("O",bot2.V,bot2.num_wins,0,False) #Load key bot variables from previous trial
+        
+        bots = {}    
+        bots[1] = bot1 
+        bots[2] = bot2
+        board = Board()
+
+        ##Run the game##
+        MAX_NUM_TURNS = 9
+        turn = 1
+        victory = False
+        while turn <= MAX_NUM_TURNS and not victory:
+            bot = bots[2-(turn%2)]
+            move = bot.get_move(board)
+            board.update(move,bot.symbol)
+            #board.print_board()
+            victory = board.check_victory(bot.symbol)
+            if (victory):
+                bot.win = 1
+                bot.num_wins = bot.num_wins + 1
+                print("Player " + bot.symbol + " wins!")
+            
+            turn = turn + 1
+            #print("#"*15)
+        
+        ##End of game: Update V using temporal-difference learning to train the bots##
+        LEARN_RATE = 0.1
+        REWARD = 100
+        if victory:
+            final_state = board.visited_states[-1]
+            bot1.V[final_state] = REWARD*bot1.win
+            bot2.V[final_state] = REWARD*bot2.win 
+        else:
+            final_state = board.visited_states[-1]
+            bot1.V[final_state] = 0
+            bot2.V[final_state] = 0 
+
+        for state in board.visited_states:
+            if state not in bot1.V:
+                bot1.V[state] = 0
+            if state not in bot2.V:
+                bot2.V[state] = 0
+
+        n_states_visited = len(board.visited_states)
+        for i in range(n_states_visited-1):
+            state = board.visited_states[n_states_visited -i -2]
+            next_state = board.visited_states[n_states_visited -i -1]
+            bot1.V[state] = bot1.V[state] + LEARN_RATE*(bot1.V[next_state] - bot1.V[state])
+            bot2.V[state] = bot2.V[state] + LEARN_RATE*(bot2.V[next_state] - bot2.V[state])
+    
+    ##Analyse test results##
+    print("Testing complete!")
+    print("X won " + str(bot1.num_wins) + " games and analysed " + str(len(bot1.V)) + " positions.")
+    print("O won " + str(bot2.num_wins) + " games and analysed " + str(len(bot2.V)) + " positions.")
+    save_results(bot1,bot2,MAX_NUM_TESTS,"tests")
+
+
 
     ##Play bot##
     print("Would you like to play against the bot? (y/n)")
@@ -205,6 +279,7 @@ def main():
             play_game = True
             valid_answer = True
         elif answer == "n":
+            print("Goodbye!")
             play_game = False
             valid_answer = True
         else:
@@ -213,12 +288,20 @@ def main():
     while play_game:
         board = Board()
         print("Play as player '1' or '2'?")
-        player = int(input())
+        valid_answer = False
+        while not valid_answer:
+            answer = input()
+            if answer == "1" or answer == "2":
+                player = int(answer)
+                valid_answer = True
+            else:
+                print("Error, please enter '1' or '2'")
+                
         if player == 1:
-            bot = Bot("O",bot2.V,bot2.num_wins,False) #Load key bot variables from previous trials
+            bot = Bot("O",bot2.V,bot2.num_wins,0,False) #Load key bot variables from previous trials
             player_symbol = "X"
         else:
-            bot = Bot("X",bot1.V,bot1.num_wins,False) #Load key bot variables from previous trials
+            bot = Bot("X",bot1.V,bot1.num_wins,0,False) #Load key bot variables from previous trials
             player_symbol = "O"
 
         ##Run the game##
@@ -240,11 +323,11 @@ def main():
             
             else:
                 n_states = board.get_next_possible_states(bot.symbol)
-                #for mov, state in n_states.items():
-                #    if state in bot.V:
-                #        print("State " + state + " has value: " + str(bot.V[state]))
-                #    else:
-                #        print("State not analysed yet.")
+                for mov, state in n_states.items():
+                    if state in bot.V:
+                        print("State " + state + " has value: " + str(bot.V[state]))
+                    else:
+                        print("State not analysed yet.")
 
                 move = bot.get_move(board)
                 board.update(move,bot.symbol)
@@ -274,8 +357,8 @@ def main():
             else:
                 print("Error, please enter 'y' or 'n':")
 
-def save_results(bot1,bot2,MAX_NUM_TRIALS):
-    filename = "results_" + str(MAX_NUM_TRIALS) + "_trials.txt"
+def save_results(bot1,bot2,MAX_NUM,case):
+    filename = "results_" + str(MAX_NUM) + "_" + case + ".txt"
     f = open(filename,"w")
     state_msg = "X analysed " + str(len(bot1.V)) + " states, O analysed " + str(len(bot2.V)) + ".\n"
     
@@ -287,7 +370,11 @@ def save_results(bot1,bot2,MAX_NUM_TRIALS):
         if state not in bot1.V:
             bot1.V[state] = 0
     
-    f.write("Results of training with " + str(MAX_NUM_TRIALS) + " trials.\n")
+    if case == "trials":
+        f.write("Results of training with " + str(MAX_NUM) + " trials.\n")
+    else:
+        f.write("Results of testing with " + str(MAX_NUM) + " tests.\n")
+
     res_msg = "X won " + str(bot1.num_wins) + " games, O won " + str(bot2.num_wins) + ".\n"
     f.write(res_msg)
     f.write(state_msg)
