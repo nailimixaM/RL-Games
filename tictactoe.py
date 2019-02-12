@@ -281,25 +281,23 @@ def save_results(bot1,bot2,MAX_NUM_TRIALS):
     
     for state, value in bot1.V.items():
         if state not in bot2.V:
-            bot2.V[state] = "Not analysed"
+            bot2.V[state] = 0
     
     for state, value in bot2.V.items():
         if state not in bot1.V:
-            bot1.V[state] = "Not analysed"
+            bot1.V[state] = 0
     
     f.write("Results of training with " + str(MAX_NUM_TRIALS) + " trials.\n")
     res_msg = "X won " + str(bot1.num_wins) + " games, O won " + str(bot2.num_wins) + ".\n"
     f.write(res_msg)
     f.write(state_msg)
-    f.write("#"*len(res_msg) + "\n")
-    f.write("State values estimated by X and O:\n")
+    f.write("#"*len(state_msg) + "\n")
+    f.write("State values V(s) estimated by X and O:\n")
 
     for state, value in bot1.V.items():
-        f.write("-"*len(res_msg) + "\n")
-        f.write("Estimated state value for X: " + str(value) + "\n")
-        f.write("Estimated state value for O: " + str(bot2.V[state]) + "\n")
-        f.write(state[0:3] + "\n")
-        f.write(state[3:6] + "\n")
+        f.write("-"*len(state_msg) + "\n")
+        f.write(state[0:3] + " "*4 + "V(s) for X: " + str(round(value,3)) + "\n")
+        f.write(state[3:6] + " "*4 + "V(s) for O: " + str(round(bot2.V[state],3)) +"\n")
         f.write(state[6:9] + "\n")
 
         
