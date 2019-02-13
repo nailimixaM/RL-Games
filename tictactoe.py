@@ -1,5 +1,6 @@
 import numpy as np
 import random
+import matplotlib.pyplot as plt
 '''
 Tic-tac-toe game.
 Author: Max Croci
@@ -201,13 +202,16 @@ def main():
     print("X won " + str(bot1.num_wins) + " games and analysed " + str(len(bot1.V)) + " positions.")
     print("O won " + str(bot2.num_wins) + " games and analysed " + str(len(bot2.V)) + " positions.")
     save_results(bot1,bot2,MAX_NUM_TRIALS,"trials")
-    
-    ##Bots play each other aggressively##
 
+    ##Bots play each other aggressively##
     MAX_NUM_TESTS = 20000
+    Xwins = []
+    Owins = []
+    Draws = []
+    Draws.append(0)
     for n_test in range(1,MAX_NUM_TESTS+1,1):
         print("Test: " + str(n_test) + " of " + str(MAX_NUM_TESTS))
-        if n_trial == 1:
+        if n_test == 1:
             bot1 = Bot("X",bot1.V,0,0,False) #Load key bot variables from previous trial
             bot2 = Bot("O",bot2.V,0,0,False) #Load key bot variables from previous trial
         else:
@@ -233,21 +237,27 @@ def main():
                 bot.win = 1
                 bot.num_wins = bot.num_wins + 1
                 print("Player " + bot.symbol + " wins!")
+
             
             turn = turn + 1
             #print("#"*15)
         
         ##End of game: Update V using temporal-difference learning to train the bots##
+        Xwins.append(bot1.num_wins)
+        Owins.append(bot2.num_wins)
         LEARN_RATE = 0.1
         REWARD = 100
         if victory:
             final_state = board.visited_states[-1]
             bot1.V[final_state] = REWARD*bot1.win
             bot2.V[final_state] = REWARD*bot2.win 
+            Draws.append(Draws[-1])
+
         else:
             final_state = board.visited_states[-1]
             bot1.V[final_state] = 0
-            bot2.V[final_state] = 0 
+            bot2.V[final_state] = 0
+            Draws.append(Draws[-1]+1)
 
         for state in board.visited_states:
             if state not in bot1.V:
@@ -267,8 +277,14 @@ def main():
     print("X won " + str(bot1.num_wins) + " games and analysed " + str(len(bot1.V)) + " positions.")
     print("O won " + str(bot2.num_wins) + " games and analysed " + str(len(bot2.V)) + " positions.")
     save_results(bot1,bot2,MAX_NUM_TESTS,"tests")
-
-
+    xx = [i+1 for i in range(MAX_NUM_TESTS)]
+    plt.scatter(xx,Xwins,label = 'X wins')
+    plt.scatter(xx,Owins,label = 'O wins')
+    plt.scatter(xx,Draws[1:],label = 'Draws')
+    plt.title("Bot v Bot test results")
+    plt.xlabel("Number of test games")
+    plt.legend()
+    plt.show()
 
     ##Play bot##
     print("Would you like to play against the bot? (y/n)")
