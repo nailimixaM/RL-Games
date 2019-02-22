@@ -8,48 +8,57 @@ Date: 21.02.2019
 '''
 
 class Board:
-    x_positions = []    #List of indices of "X" symbols
-    o_positions = []    #List of indices of "O" symbols
     positions = {}      #Dictionary of symbols (values) at positions (keys) 1-16
     available_moves = []#List of available moves
     visited_states = [] #List of visited states
-    
+    filled_positions =[]#List of positions filled from chosen moves
+    chosen_moves = []   #List of moves that have been made
+
     def __init__(self):
-        self.x_positions = []
-        self.o_positions = [] 
         self.available_moves = [i + 1 for i in range(4)] #List of possible moves 1-4
         self.positions = {}
         for i in range(16):
             self.positions[i+1] = "_"
         self.visited_states = []
         self.visited_states.append("_"*16)
+        self.filled_positions = []
+        self.chosen_moves = []
 
     def print_board(self):
         row1 = ""
         row2 = ""
         row3 = ""
         row4 = ""
-        for i in range(3):
+        for i in range(4):
             row1 += self.positions[1+i]
-            row2 += self.positions[4+i]
-            row3 += self.positions[7+i]
-            row4 += self.positions[10+i]
+            row2 += self.positions[5+i]
+            row3 += self.positions[9+i]
+            row4 += self.positions[13+i]
         print(row1)
         print(row2)
         print(row3)
         print(row4)
-
-    def update(self,move,symbol):
+    
+    def move_to_position(self,move): 
         cur_state = self.visited_states[-1]
         if cur_state[move+11] == "_":
-            self.positions[move+12] = symbol
+            position = move+12
         elif cur_state[move+7] == "_":
-            self.positions[move+8] = symbol
+            position = move+8
         elif cur_state[move+3] == "_":
-            self.positions[move+4] = symbol
+            position = move+4
         elif cur_state[move-1] == "_":
-            self.positions[move] = symbol
-        
+            position = move
+
+        print("Move " + str(move) + " equiv to position " + str(position)) 
+        self.filled_positions.append(position)
+        self.chosen_moves.append(move)
+        return position
+
+    def update(self,move,symbol):
+        position = self.move_to_position(move)
+        self.positions[position] = symbol
+
         state = ""
         for i in range(16):
             state += self.positions[1+i]
@@ -72,28 +81,52 @@ class Board:
             elif cur_state[move-1] == "_":
                 new_state = cur_state[:move-1] + symbol + cur_state[move:]
                 next_possible_states[move] = new_state
-            else:
-                print("Warning: " + str(move) + " is invalid")
+            #else:
+                #print("Warning: " + str(move) + " is invalid")
 
         return next_possible_states
 
     def check_victory(self, symbol):
-        for i in range(1,4,1):
-            if self.positions[3*i] != "_" and self.positions[3*i] ==  self.positions[3*i-1]\
-                    and self.positions[3*i] == self.positions[3*i-2]:
+        last_filled_pos = self.filled_positions[-1] #Only need to check for win around last position
+        last_move = self.chosen_moves[-1]
+        last_move_row = int(np.floor(1+(last_filled_pos-1)/4))
+
+        if last_filled_pos <= 8: #Check vertical if in top two rows
+            if self.positions[last_filled_pos] == self.positions[last_filled_pos+4]\
+                    and self.positions[last_filled_pos] == self.positions[last_filled_pos+8]: 
+                print("Game is won vertically!")
                 return True
-            
-            if self.positions[i] != "_" and self.positions[i] ==  self.positions[i+3]\
-                    and self.positions[i] ==self.positions[i+6]:
+        
+        if last_move == 1: 
+            #check horizontal
+            if self.positions[last_filled_pos] == self.positions[last_filled_pos+1]\
+                    and self.positions[last_filled_pos] == self.positions[last_filled_pos+2]: 
+                print("Win horizontally!")
+                return True
+        
+        elif last_move == 4:
+            #check horizontal
+            if self.positions[last_filled_pos] == self.positions[last_filled_pos-1]\
+                    and self.positions[last_filled_pos] == self.positions[last_filled_pos-2]: 
+                print("Win horizontally!")
                 return True
 
-        if self.positions[1] != "_" and self.positions[1] ==  self.positions[5]\
-                and self.positions[1] == self.positions[9]:
-            return True
-
-        if self.positions[3] != "_" and self.positions[3] ==  self.positions[5]\
-                and self.positions[5] == self.positions[7]:
-            return True
+        elif last_move == 2:
+            #check horizontal
+            if self.positions[last_filled_pos] == self.positions[last_filled_pos+1]:
+                if self.positions[last_filled_pos] == self.positions[last_filled_pos+2]:
+                    return True              
+                elif self.positions[last_filled_pos] == self.positions[last_filled_pos-1]:
+                    return True              
+        
+        elif last_move == 3:
+            #check horizontal
+            if self.positions[last_filled_pos] == self.positions[last_filled_pos-1]:
+                if self.positions[last_filled_pos] == self.positions[last_filled_pos-2]:
+                    return True              
+                elif self.positions[last_filled_pos] == self.positions[last_filled_pos+1]:
+                    return True              
+                
 
         return False
  
@@ -103,7 +136,7 @@ class Bot:
     win = -1    # win = 1 if bot wins
     V = {}      # Estimated value of states (keys)
     num_wins = 0# Track number of bot wins
-    tau = 0     #"Heat" controls exploration v exploitation
+    tau = 1     #"Heat" controls exploration v exploitation
     training = True
 
     def __init__(self,symbol,V,num_wins,tau,training):
@@ -145,11 +178,27 @@ def main():
     
     board = Board()
     board.print_board()
-    nps = board.get_next_possible_states("X")
-    print(nps)
-    board.update(1,"X")
-    print(board.positions)
-    print(board.visited_states)
+    bot1 = Bot("X",{},0,1,True)
+    bot2 = Bot("O",{},0,1,True)
+    
+    bots = {}
+    bots[1] = bot1
+    bots[2] = bot2
+    
+    ##Run the game##
+    MAX_NUM_TURNS = 16
+    turn = 1
+    victory = False
+
+    while turn <= MAX_NUM_TURNS and not victory:
+        bot = bots[2-(turn%2)]
+        move = bot.get_move(board)
+        board.update(move,bot.symbol)
+        board.print_board()
+        victory = board.check_victory(bot.symbol)
+        
+        turn = turn + 1
+        print("#"*15)
 
 if __name__ == "__main__":
     main()
