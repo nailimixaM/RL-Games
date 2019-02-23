@@ -6,3 +6,6 @@ tic-tac-toe: Using temporal-difference learning to train a computer to play this
 - Completed: Testing bot "X" vs bot "O"
 - Completed: Player versus bot as either "X" or "O" mode after testing
 - Completed: Training and testing results analysis
+
+ConnectX: Using temporal-difference learning to train a computer to play variants of connect 4.
+- Completed: Bot class, board class (mostly)
