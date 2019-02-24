@@ -50,7 +50,7 @@ class Board:
         elif cur_state[move-1] == "_":
             position = move
 
-        print("Move " + str(move) + " equiv to position " + str(position)) 
+        #print("Move " + str(move) + " equiv to position " + str(position)) 
         self.filled_positions.append(position)
         self.chosen_moves.append(move)
         return position
@@ -90,50 +90,70 @@ class Board:
         last_filled_pos = self.filled_positions[-1] #Only need to check for win around last position
         last_move = self.chosen_moves[-1]
         last_move_row = int(np.floor(1+(last_filled_pos-1)/4))
+        last_move_col = (last_filled_pos-1)%4 + 1
 
         if last_filled_pos <= 8: #Check vertical if in top two rows
             if self.positions[last_filled_pos] == self.positions[last_filled_pos+4]\
                     and self.positions[last_filled_pos] == self.positions[last_filled_pos+8]: 
-                print("Game is won vertically!")
+                #print("Game is won vertically!")
                 return True
         
         if last_move == 1: 
             #check horizontal
             if self.positions[last_filled_pos] == self.positions[last_filled_pos+1]\
                     and self.positions[last_filled_pos] == self.positions[last_filled_pos+2]: 
-                print("Win horizontally!")
+                #print("Win horizontally!")
                 return True
         
         elif last_move == 4:
             #check horizontal
             if self.positions[last_filled_pos] == self.positions[last_filled_pos-1]\
                     and self.positions[last_filled_pos] == self.positions[last_filled_pos-2]: 
-                print("Win horizontally!")
+                #print("Win horizontally!")
                 return True
 
         elif last_move == 2:
             #check horizontal
             if self.positions[last_filled_pos] == self.positions[last_filled_pos+1]:
                 if self.positions[last_filled_pos] == self.positions[last_filled_pos+2]:
+                    #print("Win horizontally!")
                     return True              
                 elif self.positions[last_filled_pos] == self.positions[last_filled_pos-1]:
+                    #print("Win horizontally!")
                     return True              
         
         elif last_move == 3:
             #check horizontal
             if self.positions[last_filled_pos] == self.positions[last_filled_pos-1]:
                 if self.positions[last_filled_pos] == self.positions[last_filled_pos-2]:
+                    #print("Win horizontally!")
                     return True              
                 elif self.positions[last_filled_pos] == self.positions[last_filled_pos+1]:
+                    #print("Win horizontally!")
                     return True              
-                
+        
+        #Check diagonals
+        itmp = [1, 2, 5, 6]
+        istarts = [i for i in itmp if i in self.filled_positions]
+        for i in istarts:
+            if self.positions[i] == self.positions[i+5]\
+                    and self.positions[i] == self.positions[i+10]:
+                #print("Win -ve diag")
+                return True
 
-        return False
- 
+        itmp = [3, 4, 7, 8]
+        istarts = [i for i in itmp if i in self.filled_positions]
+        for i in istarts:
+            if self.positions[i] == self.positions[i+3]\
+                    and self.positions[i] == self.positions[i+6]:
+                #print("Win +ve diag")
+                return True
+        return False 
+
 
 class Bot:
     symbol = "" # "X" or "O"
-    win = -1    # win = 1 if bot wins
+    win = 0   # win = 1 if bot wins
     V = {}      # Estimated value of states (keys)
     num_wins = 0# Track number of bot wins
     tau = 1     #"Heat" controls exploration v exploitation
@@ -172,33 +192,89 @@ class Bot:
 
         return move
 
+    def update_V(self,board,REWARD,LEARN_RATE):
+        visited_states_chron = board.visited_states
+        visited_states_chron.reverse()
+        final_state = visited_states_chron[0]
+        self.V[final_state] = REWARD*self.win
+        for state in visited_states_chron:
+            if state not in self.V:
+                self.V[state] = 0
+
+        n_states_visited = len(visited_states_chron)
+        for i in range(n_states_visited-1):
+            state = visited_states_chron[i+1]
+            next_state = visited_states_chron[i]
+            self.V[state] = self.V[state] + LEARN_RATE*(self.V[next_state] - self.V[state])
+
+
 
 def main():
     print("Hello, welcome to connect3!")
     
-    board = Board()
-    board.print_board()
-    bot1 = Bot("X",{},0,1,True)
-    bot2 = Bot("O",{},0,1,True)
-    
-    bots = {}
-    bots[1] = bot1
-    bots[2] = bot2
-    
-    ##Run the game##
-    MAX_NUM_TURNS = 16
-    turn = 1
-    victory = False
+    ##Train the bots over many trials##
+    print("Please enter the number of trials (games) to train the bots over (10k trials takes approx 20s): ")
+    MAX_NUM_TRIALS = input()
+    while MAX_NUM_TRIALS.isdigit() == False:
+        print("Error, please try again:")
+        MAX_NUM_TRIALS = input()
+    MAX_NUM_TRIALS = int(MAX_NUM_TRIALS)
 
-    while turn <= MAX_NUM_TURNS and not victory:
-        bot = bots[2-(turn%2)]
-        move = bot.get_move(board)
-        board.update(move,bot.symbol)
-        board.print_board()
-        victory = board.check_victory(bot.symbol)
-        
-        turn = turn + 1
+    tau = 20
+    for n_trial in range(1,MAX_NUM_TRIALS+1,1):
         print("#"*15)
+        print("Trial: " + str(n_trial) + " of " + str(MAX_NUM_TRIALS))
+        if n_trial%5000 == 0:
+            tau = tau/2
+
+        board = Board()
+        if n_trial == 1:
+            bot1 = Bot("X",{},0,tau,True)
+            bot2 = Bot("O",{},0,tau,True)
+        else:
+            bot1 = Bot("X",bot1.V,bot1.num_wins,tau,True) #Load key bot variables from previous trial
+            bot2 = Bot("O",bot2.V,bot2.num_wins,tau,True) #Load key bot variables from previous trial
+
+        bots = {}
+        bots[1] = bot1
+        bots[2] = bot2
+ 
+        ##Run the game##
+
+        MAX_NUM_TURNS = 16
+        REWARD = 100
+        LEARN_RATE = 0.1
+        turn = 1
+        victory = False
+
+        while turn <= MAX_NUM_TURNS and not victory:
+            bot = bots[2-(turn%2)]
+            move = bot.get_move(board)
+            board.update(move,bot.symbol)
+            #board.print_board()
+            victory = board.check_victory(bot.symbol)
+            if victory:
+                bot.win = 1
+                bot.num_wins = bot.num_wins + 1
+                print("Bot " + bot.symbol + " wins!")
+
+            turn = turn + 1
+            #print("#"*15)
+
+        ##Print final board
+        board.print_board()
+        
+        ##Update bots
+        for botnum,bot in bots.items():
+            if victory and bot.win == 0:
+                bot.win = -1
+            bot.update_V(board,REWARD,LEARN_RATE)
+
+    ##Analyse training results##
+    print("Training complete!")
+    print("X won " + str(bot1.num_wins) + " games and analysed " + str(len(bot1.V)) + " positions.")
+    print("O won " + str(bot2.num_wins) + " games and analysed " + str(len(bot2.V)) + " positions.")
+
 
 if __name__ == "__main__":
     main()
