@@ -180,12 +180,15 @@ class Bot:
             candidate_moves.append(poss_move)
             candidate_V.append(self.V[poss_state])
 
+
         if self.training:
             candidate_V[:] = [x/self.tau for x in candidate_V]
             candidate_probabilities = list(np.exp(candidate_V)/sum(np.exp(candidate_V)))
             move = int(np.random.choice(candidate_moves,1,candidate_probabilities))
         
         else:
+            print(candidate_moves)
+            print(candidate_V)
             max_V = max(candidate_V)
             possible_moves = [candidate_moves[i] for i,j in enumerate(candidate_V) if j == max_V]
             move = np.random.choice(possible_moves)
@@ -193,20 +196,17 @@ class Bot:
         return move
 
     def update_V(self,board,REWARD,LEARN_RATE):
-        visited_states_chron = board.visited_states
-        visited_states_chron.reverse()
-        final_state = visited_states_chron[0]
+        final_state = board.visited_states[-1]
         self.V[final_state] = REWARD*self.win
-        for state in visited_states_chron:
+        for state in board.visited_states:
             if state not in self.V:
                 self.V[state] = 0
 
-        n_states_visited = len(visited_states_chron)
+        n_states_visited = len(board.visited_states)
         for i in range(n_states_visited-1):
-            state = visited_states_chron[i+1]
-            next_state = visited_states_chron[i]
+            state = board.visited_states[n_states_visited -i -2]
+            next_state = board.visited_states[n_states_visited -i -1]
             self.V[state] = self.V[state] + LEARN_RATE*(self.V[next_state] - self.V[state])
-
 
 
 def main():
@@ -222,12 +222,12 @@ def main():
 
     tau = 20
     for n_trial in range(1,MAX_NUM_TRIALS+1,1):
-        print("#"*15)
-        print("Trial: " + str(n_trial) + " of " + str(MAX_NUM_TRIALS))
+        #print("#"*15)
+        if n_trial%1000 == 0:
+            print("Trial: " + str(n_trial) + " of " + str(MAX_NUM_TRIALS))
         if n_trial%5000 == 0:
             tau = tau/2
 
-        board = Board()
         if n_trial == 1:
             bot1 = Bot("X",{},0,tau,True)
             bot2 = Bot("O",{},0,tau,True)
@@ -238,9 +238,9 @@ def main():
         bots = {}
         bots[1] = bot1
         bots[2] = bot2
+        board = Board()
  
         ##Run the game##
-
         MAX_NUM_TURNS = 16
         REWARD = 100
         LEARN_RATE = 0.1
@@ -256,14 +256,11 @@ def main():
             if victory:
                 bot.win = 1
                 bot.num_wins = bot.num_wins + 1
-                print("Bot " + bot.symbol + " wins!")
+                #print("Bot " + bot.symbol + " wins!")
 
             turn = turn + 1
             #print("#"*15)
-
-        ##Print final board
-        board.print_board()
-        
+      
         ##Update bots
         for botnum,bot in bots.items():
             if victory and bot.win == 0:
@@ -273,7 +270,100 @@ def main():
     ##Analyse training results##
     print("Training complete!")
     print("X won " + str(bot1.num_wins) + " games and analysed " + str(len(bot1.V)) + " positions.")
+    print("O won " + str(bot2.num_wins) + " games and analysed " + str(len(bot2.V)) + " positions.") 
+    save_results(bot1,bot2,MAX_NUM_TRIALS,"trials")
+    
+    ##Test the bots against each other aggressively##
+    print("Please enter the number of tests: ")
+    MAX_NUM_TESTS = input()
+    while MAX_NUM_TESTS.isdigit() == False:
+        print("Error, please try again:")
+        MAX_NUM_TESTS = input()
+    MAX_NUM_TESTS = int(MAX_NUM_TESTS)
+
+    for n_trial in range(1,MAX_NUM_TESTS+1,1):
+        #print("#"*15)
+        if n_trial%1000 == 0:
+            print("Test: " + str(n_trial) + " of " + str(MAX_NUM_TRIALS))
+
+        if n_trial == 1:
+            bot1 = Bot("X",bot1.V,0,0,False)
+            bot2 = Bot("O",bot2.V,0,0,False)
+        else:
+            bot1 = Bot("X",bot1.V,bot1.num_wins,0,False) #Load key bot variables from previous trial
+            bot2 = Bot("O",bot2.V,bot2.num_wins,0,False) #Load key bot variables from previous trial
+
+        bots = {}
+        bots[1] = bot1
+        bots[2] = bot2
+        board = Board()
+ 
+        ##Run the game##
+        MAX_NUM_TURNS = 16
+        REWARD = 100
+        LEARN_RATE = 0.1
+        turn = 1
+        victory = False
+
+        while turn <= MAX_NUM_TURNS and not victory:
+            bot = bots[2-(turn%2)]
+            move = bot.get_move(board)
+            board.update(move,bot.symbol)
+            board.print_board()
+            victory = board.check_victory(bot.symbol)
+            if victory:
+                bot.win = 1
+                bot.num_wins = bot.num_wins + 1
+                print("Bot " + bot.symbol + " wins!")
+
+            turn = turn + 1
+            print("#"*15)
+      
+        ##Update bots
+        for botnum,bot in bots.items():
+            if victory and bot.win == 0:
+                bot.win = -1
+            bot.update_V(board,REWARD,LEARN_RATE)
+
+    ##Analyse testing results##
+    print("Testing complete!")
+    print("X won " + str(bot1.num_wins) + " games and analysed " + str(len(bot1.V)) + " positions.")
     print("O won " + str(bot2.num_wins) + " games and analysed " + str(len(bot2.V)) + " positions.")
+
+    save_results(bot1,bot2,MAX_NUM_TESTS,"tests")
+
+def save_results(bot1,bot2,MAX_NUM,case):
+    filename = "connX_results_" + str(MAX_NUM) + "_" + case + ".txt"
+    f = open(filename,"w")
+    state_msg = "X analysed " + str(len(bot1.V)) + " states, O analysed " + str(len(bot2.V)) + ".\n"
+
+    for state, value in bot1.V.items():
+        if state not in bot2.V:
+            bot2.V[state] = 0
+
+    for state, value in bot2.V.items():
+        if state not in bot1.V:
+            bot1.V[state] = 0
+
+    if case == "trials":
+        f.write("Results of training with " + str(MAX_NUM) + " trials.\n")
+    else:
+        f.write("Results of testing with " + str(MAX_NUM) + " tests.\n")
+
+    res_msg = "X won " + str(bot1.num_wins) + " games, O won " + str(bot2.num_wins) + ".\n"
+    f.write(res_msg)
+    f.write(state_msg)
+    f.write("#"*len(state_msg) + "\n")
+    f.write("State values V(s) estimated by X and O:\n")
+
+    for state, value in bot1.V.items():
+        f.write("-"*len(state_msg) + "\n")
+        f.write(state[0:4] + " "*4 + "V(s) for X: " + str(round(value,3)) + "\n")
+        f.write(state[4:8] + " "*4 + "V(s) for O: " + str(round(bot2.V[state],3)) +"\n")
+        f.write(state[8:12] + "\n")
+        f.write(state[12:16] + "\n")
+
+
 
 
 if __name__ == "__main__":
