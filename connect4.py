@@ -1,6 +1,7 @@
 import numpy as np
 import random
 import matplotlib.pyplot as plt
+import os
 '''
 Connect 3 game.
 Author: Max Croci
@@ -333,7 +334,13 @@ def main():
     save_results(bot1,bot2,MAX_NUM_TESTS,"tests")
 
 def save_results(bot1,bot2,MAX_NUM,case):
-    filename = "connX_results_" + str(MAX_NUM) + "_" + case + ".txt"
+    path = os.getcwd() + os.sep
+    res_dir = "connectXresults" + os.sep
+    res_path = path + res_dir
+    if not os.path.exists(res_path):
+        os.mkdir(res_path)
+
+    filename = res_dir + "results_" + str(MAX_NUM) + "_" + case + ".txt"
     f = open(filename,"w")
     state_msg = "X analysed " + str(len(bot1.V)) + " states, O analysed " + str(len(bot2.V)) + ".\n"
 
