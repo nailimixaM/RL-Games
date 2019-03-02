@@ -61,7 +61,7 @@ class Board:
         elif cur_state[move-1] == "_":
             position = move
 
-        print("Move " + str(move) + " equiv to position " + str(position)) 
+        #print("Move " + str(move) + " equiv to position " + str(position)) 
         self.filled_positions.append(position)
         self.chosen_moves.append(move)
         return position
@@ -98,71 +98,46 @@ class Board:
             elif cur_state[move-1] == "_":
                 new_state = cur_state[:move-1] + symbol + cur_state[move:]
                 next_possible_states[move] = new_state
-            else:
-                #print("Warning: " + str(move) + " is invalid")
 
         return next_possible_states
 
     def check_victory(self, symbol):
         last_filled_pos = self.filled_positions[-1] #Only need to check for win around last position
         last_move = self.chosen_moves[-1]
-        last_move_row = int(np.floor(1+(last_filled_pos-1)/4))
-        last_move_col = (last_filled_pos-1)%4 + 1
+        last_move_row = int(np.floor(1+(last_filled_pos-1)/7))
+        last_move_col = (last_filled_pos-1)%7 + 1
 
-        if last_filled_pos <= 8: #Check vertical if in top two rows
-            if self.positions[last_filled_pos] == self.positions[last_filled_pos+4]\
-                    and self.positions[last_filled_pos] == self.positions[last_filled_pos+8]: 
+        if last_filled_pos <= 21: #Check vertical if in top two rows
+            if self.positions[last_filled_pos] == self.positions[last_filled_pos+7]\
+                    and self.positions[last_filled_pos] == self.positions[last_filled_pos+14]\
+                    and self.positions[last_filled_pos] == self.positions[last_filled_pos+21]: 
                 #print("Game is won vertically!")
                 return True
         
-        if last_move == 1: 
-            #check horizontal
-            if self.positions[last_filled_pos] == self.positions[last_filled_pos+1]\
-                    and self.positions[last_filled_pos] == self.positions[last_filled_pos+2]: 
+        for i in range (1,5): #check horizontal
+            if self.positions[i+(last_move_row-1)*7] != "_"\
+                    and self.positions[i+(last_move_row-1)*7] == self.positions[i+1+(last_move_row-1)*7]\
+                    and self.positions[i+(last_move_row-1)*7] == self.positions[i+2+(last_move_row-1)*7]\
+                    and self.positions[i+(last_move_row-1)*7] == self.positions[i+3+(last_move_row-1)*7]: 
                 #print("Win horizontally!")
-                return True
-        
-        elif last_move == 4:
-            #check horizontal
-            if self.positions[last_filled_pos] == self.positions[last_filled_pos-1]\
-                    and self.positions[last_filled_pos] == self.positions[last_filled_pos-2]: 
-                #print("Win horizontally!")
-                return True
+                return True 
 
-        elif last_move == 2:
-            #check horizontal
-            if self.positions[last_filled_pos] == self.positions[last_filled_pos+1]:
-                if self.positions[last_filled_pos] == self.positions[last_filled_pos+2]:
-                    #print("Win horizontally!")
-                    return True              
-                elif self.positions[last_filled_pos] == self.positions[last_filled_pos-1]:
-                    #print("Win horizontally!")
-                    return True              
-        
-        elif last_move == 3:
-            #check horizontal
-            if self.positions[last_filled_pos] == self.positions[last_filled_pos-1]:
-                if self.positions[last_filled_pos] == self.positions[last_filled_pos-2]:
-                    #print("Win horizontally!")
-                    return True              
-                elif self.positions[last_filled_pos] == self.positions[last_filled_pos+1]:
-                    #print("Win horizontally!")
-                    return True              
-        
         #Check diagonals
-        itmp = [1, 2, 5, 6]
+        itmp = [1, 2, 3, 4, 8, 9, 10, 11, 15, 16, 17, 18]
         istarts = [i for i in itmp if i in self.filled_positions]
         for i in istarts:
-            if self.positions[i] == self.positions[i+5]\
-                    and self.positions[i] == self.positions[i+10]:
+            if self.positions[i] == self.positions[i+8]\
+                    and self.positions[i] == self.positions[i+16]\
+                    and self.positions[i] == self.positions[i+24]:
                 #print("Win -ve diag")
                 return True
 
-        itmp = [3, 4, 7, 8]
+        itmp = [4, 5, 6, 7, 11, 12, 13, 14, 18, 19, 20, 21]
         istarts = [i for i in itmp if i in self.filled_positions]
         for i in istarts:
-            if self.positions[i] == self.positions[i+3]\
-                    and self.positions[i] == self.positions[i+6]:
+            if self.positions[i] == self.positions[i+6]\
+                    and self.positions[i] == self.positions[i+12]\
+                    and self.positions[i] == self.positions[i+18]:
                 #print("Win +ve diag")
                 return True
         return False 
@@ -204,8 +179,6 @@ class Bot:
             move = int(np.random.choice(candidate_moves,1,candidate_probabilities))
         
         else:
-            print(candidate_moves)
-            print(candidate_V)
             max_V = max(candidate_V)
             possible_moves = [candidate_moves[i] for i,j in enumerate(candidate_V) if j == max_V]
             move = np.random.choice(possible_moves)
@@ -228,11 +201,16 @@ class Bot:
         #Mirror states - make use of symmetry
         mirror_visited_states = []
         for state in board.visited_states:
-            mirror_row1 = state[0:4]
-            mirror_row2 = state[4:8]
-            mirror_row3 = state[8:12]
-            mirror_row4 = state[12:16]
-            mirror_state = mirror_row1[::-1] + mirror_row2[::-1] + mirror_row3[::-1] + mirror_row4[::-1]
+            mirror_row1 = state[0:7]
+            mirror_row2 = state[7:14]
+            mirror_row3 = state[14:21]
+            mirror_row4 = state[21:28]
+            mirror_row5 = state[28:35]
+            mirror_row6 = state[35:42]
+            mirror_state = mirror_row1[::-1] + mirror_row2[::-1] + mirror_row3[::-1] \
+                    + mirror_row4[::-1] + mirror_row5[::-1] + mirror_row6[::-1]
+            self.V[mirror_state] = self.V[state]
+            '''
             mirror_visited_states.append(mirror_state)
         
         final_state = mirror_visited_states[-1]
@@ -246,7 +224,7 @@ class Bot:
             next_state = mirror_visited_states[n_states_visited -i -1]
             if state not in board.visited_states: #Do not update symmetrical positions twice
                 self.V[state] = self.V[state] + LEARN_RATE*(self.V[next_state] - self.V[state])
-
+            '''
 
 def main():
     print("Hello, welcome to connect3!")
@@ -280,9 +258,9 @@ def main():
         board = Board()
  
         ##Run the game##
-        MAX_NUM_TURNS = 16
+        MAX_NUM_TURNS = 42
         REWARD = 100
-        LEARN_RATE = 0.1
+        LEARN_RATE = 0.25
         turn = 1
         victory = False
 
@@ -291,6 +269,7 @@ def main():
             move = bot.get_move(board)
             board.update(move,bot.symbol)
             #board.print_board()
+
             victory = board.check_victory(bot.symbol)
             if victory:
                 bot.win = 1
@@ -348,7 +327,7 @@ def main():
             bot = bots[2-(turn%2)]
             move = bot.get_move(board)
             board.update(move,bot.symbol)
-            board.print_board()
+            #board.print_board()
             victory = board.check_victory(bot.symbol)
             if victory:
                 bot.win = 1
@@ -356,7 +335,7 @@ def main():
                 print("Bot " + bot.symbol + " wins!")
 
             turn = turn + 1
-            print("#"*15)
+            #print("#"*15)
       
         ##Update bots
         for botnum,bot in bots.items():
@@ -373,7 +352,7 @@ def main():
 
 def save_results(bot1,bot2,MAX_NUM,case):
     path = os.getcwd() + os.sep
-    res_dir = "connectXresults" + os.sep
+    res_dir = "connect4results" + os.sep
     res_path = path + res_dir
     if not os.path.exists(res_path):
         os.mkdir(res_path)
@@ -403,10 +382,12 @@ def save_results(bot1,bot2,MAX_NUM,case):
 
     for state, value in bot1.V.items():
         f.write("-"*len(state_msg) + "\n")
-        f.write(state[0:4] + " "*4 + "V(s) for X: " + str(round(value,3)) + "\n")
-        f.write(state[4:8] + " "*4 + "V(s) for O: " + str(round(bot2.V[state],3)) +"\n")
-        f.write(state[8:12] + "\n")
-        f.write(state[12:16] + "\n")
+        f.write(state[0:7] + "\n")
+        f.write(state[7:14] +"\n")
+        f.write(state[14:21] + " "*4 + "V(s) for X: " + str(round(value,3))  + "\n")
+        f.write(state[21:28] + " "*4 + "V(s) for O: " + str(round(bot2.V[state],3))  + "\n")
+        f.write(state[28:35] + "\n")
+        f.write(state[35:42] + "\n")
 
 
 
