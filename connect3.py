@@ -3,25 +3,25 @@ import random
 import matplotlib.pyplot as plt
 import os
 '''
-Connect 4 game.
+Connect 3 game.
 Author: Max Croci
-Date: 2.Mar.2019
+Date: 21.02.2019
 '''
 
 class Board:
-    positions = {}      #Dictionary of symbols (values) at positions (keys) 1-42
+    positions = {}      #Dictionary of symbols (values) at positions (keys) 1-16
     available_moves = []#List of available moves
     visited_states = [] #List of visited states
     filled_positions =[]#List of positions filled from chosen moves
     chosen_moves = []   #List of moves that have been made
 
     def __init__(self):
-        self.available_moves = [i + 1 for i in range(7)] #List of possible moves 1-7
+        self.available_moves = [i + 1 for i in range(4)] #List of possible moves 1-4
         self.positions = {}
-        for i in range(42):
+        for i in range(16):
             self.positions[i+1] = "_"
         self.visited_states = []
-        self.visited_states.append("_"*42)
+        self.visited_states.append("_"*16)
         self.filled_positions = []
         self.chosen_moves = []
 
@@ -30,38 +30,28 @@ class Board:
         row2 = ""
         row3 = ""
         row4 = ""
-        row5 = ""
-        row6 = ""
-        for i in range(7):
+        for i in range(4):
             row1 += self.positions[1+i]
-            row2 += self.positions[8+i]
-            row3 += self.positions[15+i]
-            row4 += self.positions[22+i]
-            row5 += self.positions[29+i]
-            row6 += self.positions[36+i]
+            row2 += self.positions[5+i]
+            row3 += self.positions[9+i]
+            row4 += self.positions[13+i]
         print(row1)
         print(row2)
         print(row3)
         print(row4)
-        print(row5)
-        print(row6)
     
     def move_to_position(self,move): 
         cur_state = self.visited_states[-1]
-        if cur_state[move+34] == "_":
-            position = move+35
-        elif cur_state[move+27] == "_":
-            position = move+28
-        elif cur_state[move+20] == "_":
-            position = move+21
-        elif cur_state[move+13] == "_":
-            position = move+14
-        elif cur_state[move+6] == "_":
-            position = move+7
+        if cur_state[move+11] == "_":
+            position = move+12
+        elif cur_state[move+7] == "_":
+            position = move+8
+        elif cur_state[move+3] == "_":
+            position = move+4
         elif cur_state[move-1] == "_":
             position = move
 
-        print("Move " + str(move) + " equiv to position " + str(position)) 
+        #print("Move " + str(move) + " equiv to position " + str(position)) 
         self.filled_positions.append(position)
         self.chosen_moves.append(move)
         return position
@@ -71,7 +61,7 @@ class Board:
         self.positions[position] = symbol
 
         state = ""
-        for i in range(42):
+        for i in range(16):
             state += self.positions[1+i]
         self.visited_states.append(state)
 
@@ -80,25 +70,19 @@ class Board:
         moves = self.available_moves
         next_possible_states = {} #Dict keyed by moves, values are states
         for move in moves:
-            if cur_state[move+34] == "_":
-                new_state = cur_state[:move+34] + symbol + cur_state[move+35:]
+            if cur_state[move+11] == "_":
+                new_state = cur_state[:move+11] + symbol + cur_state[move+12:]
                 next_possible_states[move] = new_state
-            elif cur_state[move+27] == "_":
-                new_state = cur_state[:move+27] + symbol + cur_state[move+28:]
+            elif cur_state[move+7] == "_":
+                new_state = cur_state[:move+7] + symbol + cur_state[move+8:]
                 next_possible_states[move] = new_state
-            elif cur_state[move+20] == "_":
-                new_state = cur_state[:move+20] + symbol + cur_state[move+21:]
-                next_possible_states[move] = new_state
-            elif cur_state[move+13] == "_":
-                new_state = cur_state[:move+13] + symbol + cur_state[move+14:]
-                next_possible_states[move] = new_state
-            elif cur_state[move+6] == "_":
-                new_state = cur_state[:move+6] + symbol + cur_state[move+7:]
+            elif cur_state[move+3] == "_":
+                new_state = cur_state[:move+3] + symbol + cur_state[move+4:]
                 next_possible_states[move] = new_state
             elif cur_state[move-1] == "_":
                 new_state = cur_state[:move-1] + symbol + cur_state[move:]
                 next_possible_states[move] = new_state
-            else:
+            #else:
                 #print("Warning: " + str(move) + " is invalid")
 
         return next_possible_states
