@@ -217,19 +217,7 @@ class Bot:
             mirror_row3 = state[8:12]
             mirror_row4 = state[12:16]
             mirror_state = mirror_row1[::-1] + mirror_row2[::-1] + mirror_row3[::-1] + mirror_row4[::-1]
-            mirror_visited_states.append(mirror_state)
-        
-        final_state = mirror_visited_states[-1]
-        self.V[final_state] = REWARD*self.win
-        for state in mirror_visited_states:
-            if state not in self.V:
-                self.V[state] = 0
-
-        for i in range(n_states_visited-1):
-            state = mirror_visited_states[n_states_visited -i -2]
-            next_state = mirror_visited_states[n_states_visited -i -1]
-            if state not in board.visited_states: #Do not update symmetrical positions twice
-                self.V[state] = self.V[state] + LEARN_RATE*(self.V[next_state] - self.V[state])
+            self.V[mirror_state] = self.V[state]
 
 
 def main():
@@ -357,7 +345,7 @@ def main():
 
 def save_results(bot1,bot2,MAX_NUM,case):
     path = os.getcwd() + os.sep
-    res_dir = "connectXresults" + os.sep
+    res_dir = "connect3results" + os.sep
     res_path = path + res_dir
     if not os.path.exists(res_path):
         os.mkdir(res_path)
