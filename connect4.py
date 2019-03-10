@@ -210,27 +210,28 @@ class Bot:
             mirror_state = mirror_row1[::-1] + mirror_row2[::-1] + mirror_row3[::-1] \
                     + mirror_row4[::-1] + mirror_row5[::-1] + mirror_row6[::-1]
             self.V[mirror_state] = self.V[state]
-            '''
-            mirror_visited_states.append(mirror_state)
-        
-        final_state = mirror_visited_states[-1]
-        self.V[final_state] = REWARD*self.win
-        for state in mirror_visited_states:
-            if state not in self.V:
-                self.V[state] = 0
-
-        for i in range(n_states_visited-1):
-            state = mirror_visited_states[n_states_visited -i -2]
-            next_state = mirror_visited_states[n_states_visited -i -1]
-            if state not in board.visited_states: #Do not update symmetrical positions twice
-                self.V[state] = self.V[state] + LEARN_RATE*(self.V[next_state] - self.V[state])
-            '''
 
 def main():
-    print("Hello, welcome to connect3!")
-    
+    print("Hello, welcome to connect4!")
+    valid_ans = False
+    while not valid_ans:
+        print("Would you like to train or play against a bot? Type 't' to train, 'p' to play or 'q' to quit:")
+        ans = input()
+        if ans is "t":
+            valid_ans = True
+            train_bots()
+        elif ans is "p":
+            valid_ans = True
+            play_bot()
+        elif ans is "q":
+            valid_ans = True
+            print("Goodbye!")
+        else:
+            print("I'm sorry, " + ans + " isn't a valid option, please try again.")
+
+def train_bots():
     ##Train the bots over many trials##
-    print("Please enter the number of trials (games) to train the bots over (10k trials takes approx 20s): ")
+    print("Please enter the number of trials (games) to train the bots over (2M trials takes approx 16 hours on 24 cores): ")
     MAX_NUM_TRIALS = input()
     while MAX_NUM_TRIALS.isdigit() == False:
         print("Error, please try again:")
@@ -242,7 +243,7 @@ def main():
         #print("#"*15)
         if n_trial%1000 == 0:
             print("Trial: " + str(n_trial) + " of " + str(MAX_NUM_TRIALS))
-        if n_trial%5000 == 0:
+        if n_trial%100000 == 0 and n_trial > 499999:
             tau = tau/2
 
         if n_trial == 1:
@@ -293,12 +294,13 @@ def main():
     
     ##Test the bots against each other aggressively##
     print("Please enter the number of tests: ")
-    MAX_NUM_TESTS = input()
+    MAX_NUM_TESTS = 1000000
+    '''
     while MAX_NUM_TESTS.isdigit() == False:
         print("Error, please try again:")
-        MAX_NUM_TESTS = input()
+        MAX_NUM_TESTS = 2000000
     MAX_NUM_TESTS = int(MAX_NUM_TESTS)
-
+    '''
     for n_trial in range(1,MAX_NUM_TESTS+1,1):
         #print("#"*15)
         if n_trial%1000 == 0:
@@ -317,12 +319,12 @@ def main():
         board = Board()
  
         ##Run the game##
-        MAX_NUM_TURNS = 16
+        MAX_NUM_TURNS = 42
         REWARD = 100
-        LEARN_RATE = 0.1
+        LEARN_RATE = 0.25
         turn = 1
         victory = False
-
+        
         while turn <= MAX_NUM_TURNS and not victory:
             bot = bots[2-(turn%2)]
             move = bot.get_move(board)
@@ -332,7 +334,7 @@ def main():
             if victory:
                 bot.win = 1
                 bot.num_wins = bot.num_wins + 1
-                print("Bot " + bot.symbol + " wins!")
+                #print("Bot " + bot.symbol + " wins!")
 
             turn = turn + 1
             #print("#"*15)
@@ -380,17 +382,132 @@ def save_results(bot1,bot2,MAX_NUM,case):
     f.write("#"*len(state_msg) + "\n")
     f.write("State values V(s) estimated by X and O:\n")
 
+    MAX_NUM_STATE_SAVED = 1000
+    num_state_saved = 0
     for state, value in bot1.V.items():
-        f.write("-"*len(state_msg) + "\n")
-        f.write(state[0:7] + "\n")
-        f.write(state[7:14] +"\n")
-        f.write(state[14:21] + " "*4 + "V(s) for X: " + str(round(value,3))  + "\n")
-        f.write(state[21:28] + " "*4 + "V(s) for O: " + str(round(bot2.V[state],3))  + "\n")
-        f.write(state[28:35] + "\n")
-        f.write(state[35:42] + "\n")
+        if num_state_saved < MAX_NUM_STATE_SAVED:
+            f.write("-"*len(state_msg) + "\n")
+            f.write(state[0:7] + "\n")
+            f.write(state[7:14] +"\n")
+            f.write(state[14:21] + " "*4 + "V(s) for X: " + str(round(value,3))  + "\n")
+            f.write(state[21:28] + " "*4 + "V(s) for O: " + str(round(bot2.V[state],3))  + "\n")
+            f.write(state[28:35] + "\n")
+            f.write(state[35:42] + "\n")
+            num_state_saved = num_state_saved+1
+    f.close()
+
+    filename = res_dir + "V_" + str(MAX_NUM) + "_" + case + ".txt"
+    f = open(filename,"w")
+    for state, value in bot1.V.items():
+        f.write(state + "\t" + str(value) + "\n")
+    f.close()
+
+def play_bot():
+    ##Load V from a file saved through training process##
+    print("The following saved bots exist: ")
+    num_bots = 0
+    for f in os.listdir("connect4results" + os.sep):
+        if f[0] == "V":
+            num_bots = num_bots + 1
+            print("#" + str(num_bots) + ": " + f)
+    
+    print("Type a number eg '1' to choose the bot:")
+    bot_chosen = int(input())
+    num_bots = 0
+    for f in os.listdir("connect4results" + os.sep):
+        if f[0] == "V":
+            num_bots = num_bots + 1
+            if bot_chosen == num_bots:
+                [Vx, Vo] = read_V_file(f)
+
+    play_game = True
+    while play_game:
+        board = Board()
+        print("Play as player '1' or '2'?")
+        valid_answer = False
+        while not valid_answer:
+            answer = input()
+            if answer == "1" or answer == "2":
+                player = int(answer)
+                valid_answer = True
+            else:
+                print("Error, please enter '1' or '2'")
+
+        if player == 1:
+            player_symbol = "X"
+            bot = Bot("O",Vo,0,0,False)
+        else:
+            bot = Bot("X",Vx,0,0,False)
+            player_symbol = "O"
 
 
+        ##Run the game##
+        MAX_NUM_TURNS = 42
+        turn = 1
+        victory = False
+        board.print_board()
+        while turn <= MAX_NUM_TURNS and not victory:
+            cur_player = (turn-1)%2 + 1
+            if cur_player == player:
+                print("Please make a move. Available moves:")
+                print(board.available_moves)
+                move = int(input())
+                while move not in board.available_moves:
+                    print("Error: move unavailable. Available moves:")
+                    print(board.available_moves)
+                    move = int(input())
+                board.update(move,player_symbol)
+            else:
+                n_states = board.get_next_possible_states(bot.symbol)
+                for mov, state in n_states.items():
+                    if state in bot.V:
+                        print("State " + state + " has value: " + str(bot.V[state]))
+                    else:
+                        print("State not analysed yet.")
 
+                move = bot.get_move(board)
+                board.update(move,bot.symbol)
+            
+            print("#"*15)
+            board.print_board()
+            victory = board.check_victory(bot.symbol)
+            if (victory):
+                if cur_player == player:
+                    print("Game over: you win!")
+                else:
+                    print("Game over: you lose!")
+
+            turn = turn + 1
+
+        print("Would you like to play again? (y/n)")
+        valid_answer = False
+        while not valid_answer:
+            answer = input()
+            if answer == "y":
+                play_game = True
+                valid_answer = True
+            elif answer == "n":
+                play_game = False
+                valid_answer = True
+                print("Goodbye!")
+            else:
+                print("Error, please enter 'y' or 'n':")
+
+def read_V_file(filename):
+    Vx = {}
+    Vo = {}
+    res_dir = "connect4results" + os.sep
+    f = open(res_dir + filename,'r')
+    num_lines = 0
+    for line in f:
+        num_lines = num_lines + 1
+        if num_lines%100000 == 0:
+            print("Loaded " + str(num_lines) + " lines...")
+        state, value = line.rstrip('\n').split('\t')
+        Vx[state] = float(value)
+        Vo[state] = -float(value)
+    V = [Vx, Vo]
+    return V
 
 if __name__ == "__main__":
     main()
