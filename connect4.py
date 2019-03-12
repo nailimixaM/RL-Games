@@ -215,11 +215,14 @@ def main():
     print("Hello, welcome to connect4!")
     valid_ans = False
     while not valid_ans:
-        print("Would you like to train or play against a bot? Type 't' to train, 'p' to play or 'q' to quit:")
+        print("Would you like to train, test or play against a bot? Type 'r' to train, 'e' to test,'p' to play or 'q' to quit:")
         ans = input()
-        if ans is "t":
+        if ans is "r":
             valid_ans = True
             train_bots()
+        if ans is "e":
+            valid_ans = True
+            test_bots()
         elif ans is "p":
             valid_ans = True
             play_bot()
@@ -291,27 +294,46 @@ def train_bots():
     print("X won " + str(bot1.num_wins) + " games and analysed " + str(len(bot1.V)) + " positions.")
     print("O won " + str(bot2.num_wins) + " games and analysed " + str(len(bot2.V)) + " positions.") 
     save_results(bot1,bot2,MAX_NUM_TRIALS,"trials")
+   
+def test_bots():
+    ##Load V from a file saved through training process##
+    print("The following saved bots exist: ")
+    num_bots = 0
+    for f in os.listdir("connect4results" + os.sep):
+        if f[0] == "V":
+            num_bots = num_bots + 1
+            print("#" + str(num_bots) + ": " + f)
+    
+    print("Type a number eg '1' to choose the bot:")
+    bot_chosen = int(input())
+    num_bots = 0
+    for f in os.listdir("connect4results" + os.sep):
+        if f[0] == "V":
+            num_bots = num_bots + 1
+            if bot_chosen == num_bots:
+                [Vx, Vo] = read_V_file(f)
+    
     
     ##Test the bots against each other aggressively##
     print("Please enter the number of tests: ")
-    MAX_NUM_TESTS = 1000000
-    '''
+    MAX_NUM_TESTS = input()
+    
     while MAX_NUM_TESTS.isdigit() == False:
         print("Error, please try again:")
-        MAX_NUM_TESTS = 2000000
+        MAX_NUM_TESTS = input()
     MAX_NUM_TESTS = int(MAX_NUM_TESTS)
-    '''
+    
     for n_trial in range(1,MAX_NUM_TESTS+1,1):
         #print("#"*15)
         if n_trial%1000 == 0:
-            print("Test: " + str(n_trial) + " of " + str(MAX_NUM_TRIALS))
+            print("Test: " + str(n_trial) + " of " + str(MAX_NUM_TESTS))
 
         if n_trial == 1:
-            bot1 = Bot("X",bot1.V,0,0,False)
-            bot2 = Bot("O",bot2.V,0,0,False)
+            bot1 = Bot("X",Vx,0,0,False)
+            bot2 = Bot("O",Vo,0,0,False)
         else:
-            bot1 = Bot("X",bot1.V,bot1.num_wins,0,False) #Load key bot variables from previous trial
-            bot2 = Bot("O",bot2.V,bot2.num_wins,0,False) #Load key bot variables from previous trial
+            bot1 = Bot("X",Vx,bot1.num_wins,0,False) #Load key bot variables from previous trial
+            bot2 = Bot("O",Vo,bot2.num_wins,0,False) #Load key bot variables from previous trial
 
         bots = {}
         bots[1] = bot1
