@@ -1,6 +1,7 @@
 import numpy as np
 import random
 import matplotlib.pyplot as plt
+import os
 '''
 Tic-tac-toe game.
 Author: Max Croci
@@ -126,8 +127,6 @@ class Bot:
 
 def main():
     print("Hello, welcome to tic-tac-toe!")
-    
-    ##Train the bots over many trials##
     print("Please enter the number of trials (games) to train the bots over (10k trials takes approx 20s): ")
     MAX_NUM_TRIALS = input()
     while MAX_NUM_TRIALS.isdigit() == False:
@@ -135,8 +134,16 @@ def main():
         MAX_NUM_TRIALS = input()
     MAX_NUM_TRIALS = int(MAX_NUM_TRIALS)
     
+    print("Please enter the number of tests (games) to test the bots over (10k tests takes approx 15s): ") 
+    MAX_NUM_TESTS = input()
+    while MAX_NUM_TESTS.isdigit() == False:
+        print("Error, please try again:")
+        MAX_NUM_TESTS = input()
+    MAX_NUM_TESTS = int(MAX_NUM_TESTS)
+    
     tau = 20
 
+    ##Train the bots over many trials##
     for n_trial in range(1,MAX_NUM_TRIALS+1,1):
         print("Trial: " + str(n_trial) + " of " + str(MAX_NUM_TRIALS))
         if n_trial%5000 == 0:
@@ -204,7 +211,7 @@ def main():
     save_results(bot1,bot2,MAX_NUM_TRIALS,"trials")
 
     ##Bots play each other aggressively##
-    MAX_NUM_TESTS = 20000
+
     Xwins = []
     Owins = []
     Draws = []
@@ -278,11 +285,15 @@ def main():
     print("O won " + str(bot2.num_wins) + " games and analysed " + str(len(bot2.V)) + " positions.")
     save_results(bot1,bot2,MAX_NUM_TESTS,"tests")
     xx = [i+1 for i in range(MAX_NUM_TESTS)]
+    Xwins = [100*xwin/x for xwin,x in zip(Xwins[:MAX_NUM_TESTS],xx)] 
+    Owins = [100*owin/x for owin,x in zip(Owins[:MAX_NUM_TESTS],xx)] 
+    Draws = [100*draw/x for draw,x in zip(Draws[1:MAX_NUM_TESTS+1],xx)] 
     plt.scatter(xx,Xwins,label = 'X wins')
     plt.scatter(xx,Owins,label = 'O wins')
-    plt.scatter(xx,Draws[1:],label = 'Draws')
+    plt.scatter(xx,Draws,label = 'Draws')
     plt.title("Bot v Bot test results")
     plt.xlabel("Number of test games")
+    plt.ylabel("%")
     plt.legend()
     plt.show()
 
@@ -330,11 +341,19 @@ def main():
             if cur_player == player:
                 print("Please make a move. Available moves:")
                 print(board.available_moves)
-                move = int(input())
+                move = input()
+                while move.isdigit() == False:
+                    print("Error, please try again:")
+                    move = input()
+                move = int(move)
                 while move not in board.available_moves:
                     print("Error: move unavailable. Available moves:")
                     print(board.available_moves)
-                    move = int(input())
+                    move = input()
+                    while move.isdigit() == False:
+                        print("Error, please try again:")
+                        move = input()
+                    move = int(move)
                 board.update(move,player_symbol)
             
             else:
@@ -373,7 +392,39 @@ def main():
             else:
                 print("Error, please enter 'y' or 'n':")
 
-def save_results(bot1,bot2,MAX_NUM,case):
+def save_results(bot1,bot2,MAX_NUM,case):    
+    path = os.getcwd() + os.sep
+    res_dir = "tictactoeResults" + os.sep
+    res_path = path + res_dir
+    if not os.path.exists(res_path):
+        os.mkdir(res_path)
+
+    filename = res_dir + "results_" + str(MAX_NUM) + "_" + case + ".txt"
+    f = open(filename,"w")
+    state_msg = "X analysed " + str(len(bot1.V)) + " states, O analysed " + str(len(bot2.V)) + ".\n"
+
+    for state, value in bot1.V.items():
+        if state not in bot2.V:
+            bot2.V[state] = 0
+
+    for state, value in bot2.V.items():
+        if state not in bot1.V:
+            bot1.V[state] = 0
+
+    if case == "trials":
+        f.write("Results of training with " + str(MAX_NUM) + " trials.\n")
+    else:
+        f.write("Results of testing with " + str(MAX_NUM) + " tests.\n")
+
+    res_msg = "X won " + str(bot1.num_wins) + " games, O won " + str(bot2.num_wins) + ".\n"
+    f.write(res_msg)
+    f.write(state_msg)
+    f.write("#"*len(state_msg) + "\n")
+    f.write("State values V(s) estimated by X and O:\n")
+
+
+
+    '''
     filename = "results_" + str(MAX_NUM) + "_" + case + ".txt"
     f = open(filename,"w")
     state_msg = "X analysed " + str(len(bot1.V)) + " states, O analysed " + str(len(bot2.V)) + ".\n"
@@ -396,7 +447,7 @@ def save_results(bot1,bot2,MAX_NUM,case):
     f.write(state_msg)
     f.write("#"*len(state_msg) + "\n")
     f.write("State values V(s) estimated by X and O:\n")
-
+    '''
     for state, value in bot1.V.items():
         f.write("-"*len(state_msg) + "\n")
         f.write(state[0:3] + " "*4 + "V(s) for X: " + str(round(value,3)) + "\n")
