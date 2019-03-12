@@ -1,4 +1,4 @@
-# games_python
+# RL-Games
 The aim of this repository is to demonstrate the use of machine learning/reinforcement learning techniques to simple games. I talk about these at https://projects.mcroci.com/
 
 tic-tac-toe: Using temporal-difference learning to train a computer to play this classic game.
@@ -9,4 +9,4 @@ tic-tac-toe: Using temporal-difference learning to train a computer to play this
 
 ConnectX: Using temporal-difference learning to train a computer to play variants of connect 4.
 - Completed: Connect3 on 4x4 board - player 1 can force win every game
-- In development: Connect4 on 6x7 board
+- Completed: Connect4 on 6x7 board - 2M trials are not enough to train a skillful bot, a different RL/ML strategy must be used
