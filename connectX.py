@@ -3,12 +3,13 @@ import random
 import matplotlib.pyplot as plt
 import os
 '''
-Connect 3 game.
+ConnectX game.
 Author: Max Croci
 Date: 21.02.2019
 '''
 
 class Board:
+    variant = 0
     n_rows = 0
     n_cols = 0
     positions = {}      #Dictionary of symbols (values) at positions (keys)
@@ -22,12 +23,14 @@ class Board:
         self.visited_states = []
         self.filled_positions = []
         self.chosen_moves = []
-        if variant == 3:
+        if variant == "3":
             self.n_rows = 4
             self.n_cols = 4
-        elif variant == 4:
+            self.variant = variant
+        elif variant == "4":
             self.n_rows = 6
             self.n_cols = 7
+            self.variant = variant
 
         self.available_moves = [i + 1 for i in range(self.n_cols)]
         for i in range(self.n_rows*self.n_cols):
@@ -48,7 +51,6 @@ class Board:
                 position = move+i*self.n_cols
                 self.filled_positions.append(position)
                 self.chosen_moves.append(move)
-                print("Move " + str(move) + " equiv to position " + str(position)) 
                 return position
 
     def update(self,move,symbol):
@@ -65,7 +67,6 @@ class Board:
 
     def get_next_possible_states(self, symbol):
         cur_state = self.visited_states[-1]
-        print(cur_state)
         moves = self.available_moves
         next_possible_states = {} #Dict keyed by moves, values are states
         for move in moves:
@@ -82,67 +83,80 @@ class Board:
     def check_victory(self, symbol):
         last_filled_pos = self.filled_positions[-1] #Only need to check for win around last position
         last_move = self.chosen_moves[-1]
-        last_move_row = int(np.floor(1+(last_filled_pos-1)/4))
-        last_move_col = (last_filled_pos-1)%4 + 1
-
-        if last_filled_pos <= 8: #Check vertical if in top two rows
-            if self.positions[last_filled_pos] == self.positions[last_filled_pos+4]\
-                    and self.positions[last_filled_pos] == self.positions[last_filled_pos+8]: 
-                #print("Game is won vertically!")
-                return True
+        last_move_row = int(np.floor(1+(last_filled_pos-1)/self.n_cols))
+        last_move_col = (last_filled_pos-1)%self.n_cols + 1
         
-        if last_move == 1: 
-            #check horizontal
-            if self.positions[last_filled_pos] == self.positions[last_filled_pos+1]\
-                    and self.positions[last_filled_pos] == self.positions[last_filled_pos+2]: 
-                #print("Win horizontally!")
-                return True
-        
-        elif last_move == 4:
-            #check horizontal
-            if self.positions[last_filled_pos] == self.positions[last_filled_pos-1]\
-                    and self.positions[last_filled_pos] == self.positions[last_filled_pos-2]: 
-                #print("Win horizontally!")
-                return True
+        if self.variant == "3":
+            if last_filled_pos <= 8: #Check vertical if in top two rows
+                if self.positions[last_filled_pos] == self.positions[last_filled_pos+self.n_cols]\
+                        and self.positions[last_filled_pos] == self.positions[last_filled_pos+self.n_cols*2]:
+                    #print("Game is won vertically!")
+                    return True
 
-        elif last_move == 2:
-            #check horizontal
-            if self.positions[last_filled_pos] == self.positions[last_filled_pos+1]:
-                if self.positions[last_filled_pos] == self.positions[last_filled_pos+2]:
+            for i in range (1,self.n_cols-1): #check horizontal
+                if self.positions[i+(last_move_row-1)*self.n_cols] != "_"\
+                        and self.positions[i+(last_move_row-1)*self.n_cols] == self.positions[i+1+(last_move_row-1)*self.n_cols]\
+                        and self.positions[i+(last_move_row-1)*self.n_cols] == self.positions[i+2+(last_move_row-1)*self.n_cols]:
                     #print("Win horizontally!")
-                    return True              
-                elif self.positions[last_filled_pos] == self.positions[last_filled_pos-1]:
-                    #print("Win horizontally!")
-                    return True              
-        
-        elif last_move == 3:
-            #check horizontal
-            if self.positions[last_filled_pos] == self.positions[last_filled_pos-1]:
-                if self.positions[last_filled_pos] == self.positions[last_filled_pos-2]:
-                    #print("Win horizontally!")
-                    return True              
-                elif self.positions[last_filled_pos] == self.positions[last_filled_pos+1]:
-                    #print("Win horizontally!")
-                    return True              
-        
-        #Check diagonals
-        itmp = [1, 2, 5, 6]
-        istarts = [i for i in itmp if i in self.filled_positions]
-        for i in istarts:
-            if self.positions[i] == self.positions[i+5]\
-                    and self.positions[i] == self.positions[i+10]:
-                #print("Win -ve diag")
-                return True
+                    return True
 
-        itmp = [3, 4, 7, 8]
-        istarts = [i for i in itmp if i in self.filled_positions]
-        for i in istarts:
-            if self.positions[i] == self.positions[i+3]\
-                    and self.positions[i] == self.positions[i+6]:
-                #print("Win +ve diag")
-                return True
-        return False 
+            #Check diagonals
+            itmp = [1, 2, 5, 6]
+            istarts = [i for i in itmp if i in self.filled_positions]
+            for i in istarts:
+                if self.positions[i] == self.positions[i+self.n_cols+1]\
+                        and self.positions[i] == self.positions[i+self.n_rows*2+2]:
+                    #print("Win -ve diag")
+                    return True
 
+            itmp = [3, 4, 7, 8]
+            istarts = [i for i in itmp if i in self.filled_positions]
+            for i in istarts:
+                if self.positions[i] == self.positions[i+self.n_cols-1]\
+                        and self.positions[i] == self.positions[i+self.n_rows*2-2]:
+                    #print("Win +ve diag")
+                    return True
+            return False
+        
+        elif self.variant == "4":
+            if last_filled_pos <= 21: #Check vertical if in top three rows
+                if self.positions[last_filled_pos] == self.positions[last_filled_pos+self.n_cols]\
+                        and self.positions[last_filled_pos] == self.positions[last_filled_pos+self.n_cols*2]\
+                        and self.positions[last_filled_pos] == self.positions[last_filled_pos+self.n_cols*3]:
+                    #print("Game is won vertically!")
+                    return True
+
+            for i in range (1,self.n_cols-2): #check horizontal
+                if self.positions[i+(last_move_row-1)*self.n_cols] != "_"\
+                        and self.positions[i+(last_move_row-1)*self.n_cols] == self.positions[i+1+(last_move_row-1)*self.n_cols]\
+                        and self.positions[i+(last_move_row-1)*self.n_cols] == self.positions[i+2+(last_move_row-1)*self.n_cols]\
+                        and self.positions[i+(last_move_row-1)*self.n_cols] == self.positions[i+3+(last_move_row-1)*self.n_cols]:
+                    #print("Win horizontally!")
+                    return True
+
+            #Check diagonals
+            itmp = [1, 2, 3, 4, 8, 9, 10, 11, 15, 16, 17, 18]
+            istarts = [i for i in itmp if i in self.filled_positions]
+            for i in istarts:
+                if self.positions[i] == self.positions[i+8]\
+                        and self.positions[i] == self.positions[i+16]\
+                        and self.positions[i] == self.positions[i+24]:
+                    #print("Win -ve diag")
+                    return True
+
+            itmp = [4, 5, 6, 7, 11, 12, 13, 14, 18, 19, 20, 21]
+            istarts = [i for i in itmp if i in self.filled_positions]
+            for i in istarts:
+                if self.positions[i] == self.positions[i+6]\
+                        and self.positions[i] == self.positions[i+12]\
+                        and self.positions[i] == self.positions[i+18]:
+                    #print("Win +ve diag")
+                    return True
+            return False
+
+        else:
+            print("Warning: unrecognised variant!")
+            return False
 
 class Bot:
     symbol = "" # "X" or "O"
@@ -202,13 +216,12 @@ class Bot:
         #Mirror states - make use of symmetry
         mirror_visited_states = []
         for state in board.visited_states:
-            mirror_row1 = state[0:4]
-            mirror_row2 = state[4:8]
-            mirror_row3 = state[8:12]
-            mirror_row4 = state[12:16]
-            mirror_state = mirror_row1[::-1] + mirror_row2[::-1] + mirror_row3[::-1] + mirror_row4[::-1]
+            mirror_state = state[board.n_cols-1::-1]
+            for i in range(1,board.n_rows,1):
+                mirror_row = state[(i+1)*board.n_cols-1:i*board.n_cols-1:-1]
+                mirror_state = mirror_state + mirror_row
+        
             self.V[mirror_state] = self.V[state]
-
 
 def main():
     print("Hello, welcome to connectX!")
@@ -224,19 +237,24 @@ def main():
         else:
             print("I'm sorry, " + variant + " isn't a valid option, please try again.")
    
-    variant = int(variant)
+    res_dir = "resultsConnect" + variant +os.sep
+    path = os.getcwd() + os.sep
+    res_path = path + res_dir
+    if not os.path.exists(res_path):
+        os.mkdir(res_path)
+    
     quit = False
     while not quit:
         print("Would you like to train, test or play against a bot? Type 'r' to train, 'e' to test,'p' to play or 'q' to quit:")
         ans = input()
         if ans is "r":
-            train_bots(variant)
+            train_bots(variant,res_dir)
             print('\n')
         elif ans is "e":
-            test_bots(variant)
+            test_bots(variant,res_dir)
             print('\n')
         elif ans is "p":
-            play_bot(variant)
+            play_bot(variant,res_dir)
             print('\n')
         elif ans is "q":
             quit = True
@@ -244,7 +262,7 @@ def main():
         else:
             print("I'm sorry, " + ans + " isn't a valid option, please try again.")
 
-def train_bots(variant):
+def train_bots(variant,res_dir):
     ##Train the bots over many trials##
     print("Please enter the number of trials (games) to train the bots over (10k trials takes approx 20s): ")
     MAX_NUM_TRIALS = input()
@@ -274,7 +292,7 @@ def train_bots(variant):
         board = Board(variant)
  
         ##Run the game##
-        MAX_NUM_TURNS = 16
+        MAX_NUM_TURNS = board.n_rows*board.n_cols
         REWARD = 100
         LEARN_RATE = 0.1
         turn = 1
@@ -304,13 +322,13 @@ def train_bots(variant):
     print("Training complete!")
     print("X won " + str(bot1.num_wins) + " games and analysed " + str(len(bot1.V)) + " positions.")
     print("O won " + str(bot2.num_wins) + " games and analysed " + str(len(bot2.V)) + " positions.") 
-    save_results(bot1,bot2,MAX_NUM_TRIALS,"trials")
+    save_results(res_dir,bot1,bot2,MAX_NUM_TRIALS,"trials")
 
-def test_bots(variant):
+def test_bots(variant,res_dir):
     ##Load V from a file saved through training process##
     print("The following saved bots exist: ")
     num_bots = 0
-    for f in os.listdir("connect3results" + os.sep):
+    for f in os.listdir(res_dir):
         if f[0] == "V":
             num_bots = num_bots + 1
             print("#" + str(num_bots) + ": " + f)
@@ -322,11 +340,11 @@ def test_bots(variant):
     print("Type a number eg '1' to choose the bot:")
     bot_chosen = int(input())
     num_bots = 0
-    for f in os.listdir("connect3results" + os.sep):
+    for f in os.listdir(res_dir):
         if f[0] == "V":
             num_bots = num_bots + 1
             if bot_chosen == num_bots:
-                [Vx, Vo] = read_V_file(f)
+                [Vx, Vo] = read_V_file(res_dir,f)
 
     ##Test the bots against each other aggressively##
     print("Please enter the number of tests: ")
@@ -354,7 +372,7 @@ def test_bots(variant):
         board = Board(variant)
  
         ##Run the game##
-        MAX_NUM_TURNS = 16
+        MAX_NUM_TURNS = board.n_cols*board.n_rows
         REWARD = 100
         LEARN_RATE = 0.1
         turn = 1
@@ -384,13 +402,13 @@ def test_bots(variant):
     print("Testing complete!")
     print("X won " + str(bot1.num_wins) + " games and analysed " + str(len(bot1.V)) + " positions.")
     print("O won " + str(bot2.num_wins) + " games and analysed " + str(len(bot2.V)) + " positions.")
-    save_results(bot1,bot2,MAX_NUM_TESTS,"tests")
+    save_results(res_dir,bot1,bot2,MAX_NUM_TESTS,"tests")
 
-def play_bot(variant):
+def play_bot(variant,res_dir):
     ##Load V from a file saved through training process##
     print("The following saved bots exist: ")
     num_bots = 0
-    for f in os.listdir("connect3results" + os.sep):
+    for f in os.listdir(res_dir):
         if f[0] == "V":
             num_bots = num_bots + 1
             print("#" + str(num_bots) + ": " + f)
@@ -398,11 +416,11 @@ def play_bot(variant):
     print("Type a number eg '1' to choose the bot:")
     bot_chosen = int(input())
     num_bots = 0
-    for f in os.listdir("connect3results" + os.sep):
+    for f in os.listdir(res_dir):
         if f[0] == "V":
             num_bots = num_bots + 1
             if bot_chosen == num_bots:
-                [Vx, Vo] = read_V_file(f)
+                [Vx, Vo] = read_V_file(res_dir,f)
 
     play_game = True
     while play_game:
@@ -426,7 +444,7 @@ def play_bot(variant):
 
 
         ##Run the game##
-        MAX_NUM_TURNS = 42
+        MAX_NUM_TURNS = board.n_cols*board.n_rows
         turn = 1
         victory = False
         board.print_board()
@@ -443,12 +461,6 @@ def play_bot(variant):
                 board.update(move,player_symbol)
             else:
                 n_states = board.get_next_possible_states(bot.symbol)
-                for mov, state in n_states.items():
-                    if state in bot.V:
-                        print("State " + state + " has value: " + str(bot.V[state]))
-                    else:
-                        print("State " + state + " not analysed yet.")
-
                 move = bot.get_move(board)
                 board.update(move,bot.symbol)
 
@@ -473,33 +485,25 @@ def play_bot(variant):
             elif answer == "n":
                 play_game = False
                 valid_answer = True
-                print("Goodbye!")
             else:
                 print("Error, please enter 'y' or 'n':")
 
-def read_V_file(filename):
+def read_V_file(res_dir,filename):
     Vx = {}
     Vo = {}
-    res_dir = "connect3results" + os.sep
     f = open(res_dir + filename,'r')
     num_lines = 0
     for line in f:
         num_lines = num_lines + 1
-        if num_lines%100000 == 0:
-            print("Loaded " + str(num_lines) + " lines...")
+        if num_lines%1000 == 0:
+            print("Loaded " + str(num_lines) + " states...")
         state, value = line.rstrip('\n').split('\t')
         Vx[state] = float(value)
         Vo[state] = -float(value)
     V = [Vx, Vo]
     return V
 
-def save_results(bot1,bot2,MAX_NUM,case):
-    path = os.getcwd() + os.sep
-    res_dir = "connect3results" + os.sep
-    res_path = path + res_dir
-    if not os.path.exists(res_path):
-        os.mkdir(res_path)
-
+def save_results(res_dir,bot1,bot2,MAX_NUM,case):
     filename = res_dir + "results_" + str(MAX_NUM) + "_" + case + ".txt"
     f = open(filename,"w")
     state_msg = "X analysed " + str(len(bot1.V)) + " states, O analysed " + str(len(bot2.V)) + ".\n"
@@ -536,9 +540,6 @@ def save_results(bot1,bot2,MAX_NUM,case):
     for state, value in bot1.V.items():
         f.write(state + "\t" + str(value) + "\n")
     f.close()
-
-
-
 
 if __name__ == "__main__":
     main()
