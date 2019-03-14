@@ -322,7 +322,7 @@ def train_bots(variant,res_dir):
     print("Training complete!")
     print("X won " + str(bot1.num_wins) + " games and analysed " + str(len(bot1.V)) + " positions.")
     print("O won " + str(bot2.num_wins) + " games and analysed " + str(len(bot2.V)) + " positions.") 
-    save_results(res_dir,bot1,bot2,MAX_NUM_TRIALS,"trials")
+    save_results(res_dir,board,bot1,bot2,MAX_NUM_TRIALS,"trials")
 
 def test_bots(variant,res_dir):
     ##Load V from a file saved through training process##
@@ -402,7 +402,7 @@ def test_bots(variant,res_dir):
     print("Testing complete!")
     print("X won " + str(bot1.num_wins) + " games and analysed " + str(len(bot1.V)) + " positions.")
     print("O won " + str(bot2.num_wins) + " games and analysed " + str(len(bot2.V)) + " positions.")
-    save_results(res_dir,bot1,bot2,MAX_NUM_TESTS,"tests")
+    save_results(res_dir,board,bot1,bot2,MAX_NUM_TESTS,"tests")
 
 def play_bot(variant,res_dir):
     ##Load V from a file saved through training process##
@@ -503,7 +503,7 @@ def read_V_file(res_dir,filename):
     V = [Vx, Vo]
     return V
 
-def save_results(res_dir,bot1,bot2,MAX_NUM,case):
+def save_results(res_dir,board,bot1,bot2,MAX_NUM,case):
     filename = res_dir + "results_" + str(MAX_NUM) + "_" + case + ".txt"
     f = open(filename,"w")
     state_msg = "X analysed " + str(len(bot1.V)) + " states, O analysed " + str(len(bot2.V)) + ".\n"
@@ -529,10 +529,15 @@ def save_results(res_dir,bot1,bot2,MAX_NUM,case):
 
     for state, value in bot1.V.items():
         f.write("-"*len(state_msg) + "\n")
-        f.write(state[0:4] + " "*4 + "V(s) for X: " + str(round(value,3)) + "\n")
-        f.write(state[4:8] + " "*4 + "V(s) for O: " + str(round(bot2.V[state],3)) +"\n")
-        f.write(state[8:12] + "\n")
-        f.write(state[12:16] + "\n")
+        for i in range(board.n_rows):
+            if i == 2:
+                f.write(state[i*board.n_cols:(i+1)*board.n_cols]\
+                        + " "*4 + "V(s) for X: " + str(round(value,3)) + "\n")
+            elif i == 3:
+                f.write(state[i*board.n_cols:(i+1)*board.n_cols]\
+                        + " "*4 + "V(s) for O: " + str(round(bot2.V[state],3)) +"\n")
+            else:
+                f.write(state[i*board.n_cols:(i+1)*board.n_cols] + "\n")
     f.close()
 
     filename = res_dir + "V_" + str(MAX_NUM) + "_" + case + ".txt"
